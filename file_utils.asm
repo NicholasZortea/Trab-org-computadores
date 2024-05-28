@@ -3,6 +3,7 @@
 	.globl le_arquivo
 	.globl fecha_arquivo
 	.globl printa_buffer
+	.globl get_buffer_word
 
 abre_arquivo:
 	#Carrega arquivo
@@ -28,17 +29,20 @@ fecha_arquivo:
 	jr $ra #volta para a main
 	
 printa_buffer:
-	#printa o arquivo
-	la $t1, buffer
-	li $v0, 1 #syscall para printar inteiro
-	move $a0, $t1 #move buffer para argumento
+			
+	la $a0, buffer #carrega o endereco do buffer no registrador de argumento $a0
+	li $v0, 4 #syscall para printar string
 	syscall
 	
-	la $a0, espaco
-	li $v0, 4
+	li $a0, '\n'
+	li $v0, 11
 	syscall
 	jr $ra
+
+get_buffer_word:
+	lw $v0, buffer
+	jr $ra
+
 .data
 arquivo: .asciiz "C:/Users/zorte/Documents/TrabOrgComputadores/trabalho_01-2024_1.bin"
 buffer: .space 4
-espaco: .asciiz "\n"

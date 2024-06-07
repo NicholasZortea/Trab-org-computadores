@@ -1,0 +1,24 @@
+.text
+
+.globl main
+
+main: 
+	li $t1, 0x00000fa #carrega um valor de teste em $t1
+	move $t2, $zero #inicia o registrador $t2 com 0
+	j enquanto
+faca:
+	#$t3 vai guardar os 4 bytes atuais
+	sllv  $t3, $t1, $t2 #faz o shift para a esquerda de acordo com o valor armazenado em $t2
+	srl $t3, $t3, 28 #faz o shift para a direita de 28 bits
+	li $v0, 1 #syscall para printar inteiro
+	move $a0, $t3 #move os 4 bits a serem printados para o registrador de argumento $a0
+	syscall #faz a chamada
+	addi $t2, $t2, 4 #adiciona 4 ao contador de quantos bits fazer shift para a esquerda
+
+enquanto:
+	ble $t2, 28, faca
+	
+fim:
+	
+	
+	

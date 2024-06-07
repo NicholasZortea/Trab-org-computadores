@@ -20,12 +20,8 @@ faça:
 	jal get_buffer_word #procedimento para retornar o que esta no buffer para o registrador $v0
 	move $s1, $v0 #seta conteudo de $v0 em $s1
 	move $a0, $s4 #seta o argumento para o endereco do programCounter
-	jal printa_endereco_e_incrementa
-	
-	
 	move $a0, $s1 #passa para o argumento a word do conteudo do buffer
-	
-	jal printa_byte_a_byte
+	jal printa_hexa #vai para o procedimento que printa o valor em $a0, como hexadecimal
 enquanto_ler_4_bytes:
 	jal le_arquivo
 	beq $s3, $v0, faça #compara o registrador $v0 com o $s3, se $v0 for igual a 4 vai para faça

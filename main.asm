@@ -31,40 +31,7 @@ fim_condição:
 	li $v0, 10
 	syscall
 	
-
-######################################################################################################
-#Mapa da pilha:										             #		
-#0($sp) -> argumento passado para esse procedimento que contem a palavra da instrução		     #
-#4($sp) -> armazena o valor do registrador $ra, para ser restaurado antes de terminar o procedimento #
-######################################################################################################
-printa_byte_a_byte:
-	addiu $sp, $sp -8 #aloca 8 bytes na pilha
-	sw $a0, 0($sp) #move argumento para pilha no endereço 0
-	sw $ra, 4($sp) #armazena o valor de retorno da funcao
-	
-	jal get_instrucao_opcode
-	move $t1, $v0
-	
-	li $v0, SERVICO_PRINTA_INT
-	move $a0, $t1
-	syscall 
-	
-	li $v0, SERVICO_PRINTA_CHAR
-	li $a0, ' '
-	syscall
-	
-	lw $ra, 4($sp)
-	addiu $sp, $sp, 8
-	jr $ra
-
 get_instrucao_opcode:
 	srl $v0, $a0, 26 #shift para direita de 26 casas para pegar o opcode
 	jr $ra
 	
-printa_instrucao:
-	addiu $sp, $sp -4 #aloca 4 bytes para a instrução a ser printada
-	sw $a0, 0($sp) #guarda na memoria a instrução
-	
-	
-	addiu $sp, $sp, 4
-	jr $ra

@@ -16,12 +16,16 @@ main:
 	li $s4, 0x00400000 #inicia o Program Counter
 	j enquanto_ler_4_bytes #pula para a condicao
 faça:	
-	#jal printa_buffer #procedimento para printar o que esta no buffer como string
+	move $a0, $s4 #move o PC para o registrador de argumento
+	jal printa_hexa #chama procedimento para printar o PC em hexadecimal
+
 	jal get_buffer_word #procedimento para retornar o que esta no buffer para o registrador $v0
 	move $s1, $v0 #seta conteudo de $v0 em $s1
-	move $a0, $s4 #seta o argumento para o endereco do programCounter
 	move $a0, $s1 #passa para o argumento a word do conteudo do buffer
-	jal printa_hexa #vai para o procedimento que printa o valor em $a0, como hexadecimal
+	jal printa_hexa #vai para o procedimento que printa a palavra carregada do buffer em hexadecimal
+	
+	jal printa_linha_vazia
+	addi $s4, $s4, 4 #adiciona 4 no PC
 enquanto_ler_4_bytes:
 	jal le_arquivo
 	beq $s3, $v0, faça #compara o registrador $v0 com o $s3, se $v0 for igual a 4 vai para faça
@@ -35,3 +39,8 @@ get_instrucao_opcode:
 	srl $v0, $a0, 26 #shift para direita de 26 casas para pegar o opcode
 	jr $ra
 	
+printa_linha_vazia:
+	li $a0, '\n'
+	li $v0, 11
+	syscall
+	jr $ra

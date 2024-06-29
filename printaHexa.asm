@@ -15,15 +15,17 @@
 #8($sp) -> vai conter $t2
 #12($sp) -> vai conter $t3
 #16($sp) -> vai conter $t5
+#20($sp) -> vai conter $a0
 
 printa_hexa: 
 	#prologo:
-	addiu $sp, $sp -20 #ajusta a pilha
+	addiu $sp, $sp -24 #ajusta a pilha
 	sw $ra, 0($sp)
 	sw $t1, 4($sp)
 	sw $t2, 8($sp)
 	sw $t3, 12($sp)
 	sw $t5, 16($sp)
+	sw $a0, 20($sp)
 	
 	#corpo do programa:	
 	move $t1, $a0 #carrega o valor do argumento no registrador $t1
@@ -52,7 +54,9 @@ fim:
 	lw $t2, 8($sp)
 	lw $t3, 12($sp)
 	lw $t5, 16($sp)
+	lw $a0, 20($sp)
 	
+	addi $sp, $sp, 20 #reseta pilha
 	jr $ra #volta para o procedimento chamador
 printa_4_bits:
 	move $t5, $a0

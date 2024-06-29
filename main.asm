@@ -1,6 +1,3 @@
-.eqv SERVICO_PRINTA_CHAR 11
-.eqv SERVICO_PRINTA_INT 1
-
 .text
 .globl main
 ########################
@@ -24,6 +21,8 @@ faça:
 	move $a0, $s1 #passa para o argumento a word do conteudo do buffer
 	jal printa_hexa #vai para o procedimento que printa a palavra carregada do buffer em hexadecimal
 	
+	jal decodifica
+	
 	jal printa_linha_vazia
 	addi $s4, $s4, 4 #adiciona 4 no PC
 enquanto_ler_4_bytes:
@@ -34,10 +33,6 @@ fim_condição:
 	#termina o programa
 	li $v0, 10
 	syscall
-	
-get_instrucao_opcode:
-	srl $v0, $a0, 26 #shift para direita de 26 casas para pegar o opcode
-	jr $ra
 	
 printa_linha_vazia:
 	li $a0, '\n'

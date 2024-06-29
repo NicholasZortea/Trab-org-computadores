@@ -2,7 +2,6 @@
 	.globl abre_arquivo
 	.globl le_arquivo
 	.globl fecha_arquivo
-	.globl printa_buffer
 	.globl get_buffer_word
 
 abre_arquivo:
@@ -27,22 +26,33 @@ fecha_arquivo:
 	move $a0, $s0 #move o file descriptor para o argumento
 	syscall #chama o serviço
 	jr $ra #volta para a main
-	
-printa_buffer:
-			
-	la $a0, buffer #carrega o endereco do buffer no registrador de argumento $a0
-	li $v0, 4 #syscall para printar string
-	syscall
-	
-	li $a0, '\n'
-	li $v0, 11
-	syscall
-	jr $ra
 
 get_buffer_word:
-	lw $v0, buffer
+	la $t1, buffer
+	lb $t2, 0($t1)
+	move $t3, $zero
+	sll $t2, $t2, 24
+	srl $t2, $t2, 24
+	or $t3, $t3, $t2
+	
+	lb $t2, 1($t1)
+	sll $t2, $t2, 24
+	srl $t2, $t2, 16
+	or $t3, $t3, $t2
+	
+	lb $t2, 2($t1)
+	sll $t2, $t2, 24
+	srl $t2, $t2 8
+	or $t3, $t3, $t2
+	
+	lb $t2, 3($t1)
+	sll $t2, $t2, 24
+	or $t3, $t3, $t2
+	
+	move $v0, $t3
 	jr $ra
 
 .data
-arquivo: .asciiz "C:/Users/zorte/Documents/TrabOrgComputadores/trabalho_01-2024_1.bin"
+arquivo: .asciiz "trabalho_01-2024_1.bin"
 buffer: .space 4
+

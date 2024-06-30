@@ -55,13 +55,44 @@ get_instrucao_opcode:
 identifica_instrucao:
 	addi $sp, $sp, -12 #abre espaço na pilha para 8 bytes
 	sw $ra, 0($sp) #armazena o $ra na pilha para restaurar posteriormente
-	sw $a0, 4($sp) #armazena o registrador de argumento na pilha
+	sw $a0, 4($sp) #armazena o registrador de argumento na pilha (instrução)
 	sw $a1, 8($sp) #armazena o registrador de argumento na pilha
 	
 	move $t1, $a0 #seta $t1 para a instrução
 	move $t2, $a1 #seta $t2 para o opcode da instrucao
 	
 	beq $t2, 9, addiu_label #se o opcode for 9 vai para a instrução addiu
+	beq $t2, 43, sw_label #se o opcode for 43 vai para instrução sw
+	j fim_switch
+	
+sw_label:
+	la $a0, sw_str #carrega 'sw ' em $a0
+	jal printa_string #printa a string acima
+	
+	#rt
+	lw $a0, 4($sp) #carrega a instrução em $a0
+	jal get_rt_tipo_i #retorna em $v0 o registrador rt
+	move $a0, $v0 #move para o argumento o registrador rt
+	jal decodifica_registrador #printa o registrador rt
+	jal printa_virgula_espaco #printa virgula e um espaco
+	
+	#imm/offset
+	lw $a0, 4($sp) #carrega a instrução em $a0
+	jal get_imm_tipo_i #retorna em $v0 o offset
+	move $a0, $v0 #carrega o offset em $a0
+	jal printa_inteiro #printa como inteiro
+	
+	#rs
+	li $a0, '(' #carrega o caracter '(' em $a0
+	jal printa_caracter #printa o caracter contido em $a0
+	
+	lw $a0, 4($sp) #carrega a instrução em $a0
+	jal get_rs_tipo_i #retorna em $v0 o offset
+	move $a0, $v0 #move para o argumento o registrador rs
+	jal decodifica_registrador #printa o registrador rs
+	
+	li $a0, ')' #carrega o caracter ')' em $a0
+	jal printa_caracter #printa o caracter contido em $a0
 	
 	j fim_switch
 
@@ -171,3 +202,4 @@ get_imm_tipo_i:
 
 .data
 addiu_str: .asciiz "addiu "
+sw_str: .asciiz "sw "

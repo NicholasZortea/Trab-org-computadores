@@ -45,9 +45,8 @@ faca:
 enquanto:
 	ble $t2, 28, faca #enquanto o valor armazenado em $t2 for menor que 28 vai para o procedimento 'faca'
 fim:
-	li $v0, 11 #carrega serviço para printar caracter
-	li $a0, '\t' #carrega tab no argumento
-	syscall
+	jal printa_tab
+
 	#epilogo restaura os valores da pilha e retorna
 	lw $ra, 0($sp)
 	lw $t1, 4($sp)

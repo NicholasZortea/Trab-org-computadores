@@ -34,8 +34,4 @@ fim_condição:
 	li $v0, 10
 	syscall
 	
-printa_linha_vazia:
-	li $a0, '\n'
-	li $v0, 11
-	syscall
-	jr $ra
+

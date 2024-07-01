@@ -56,15 +56,49 @@ identifica_instrucao:
 	addi $sp, $sp, -12 #abre espaço na pilha para 8 bytes
 	sw $ra, 0($sp) #armazena o $ra na pilha para restaurar posteriormente
 	sw $a0, 4($sp) #armazena o registrador de argumento na pilha (instrução)
-	sw $a1, 8($sp) #armazena o registrador de argumento na pilha
+	sw $a1, 8($sp) #armazena o registrador de argumento na pilha (opcode)
 	
 	move $t1, $a0 #seta $t1 para a instrução
 	move $t2, $a1 #seta $t2 para o opcode da instrucao
 	
 	beq $t2, 9, addiu_label #se o opcode for 9 vai para a instrução addiu
 	beq $t2, 43, sw_label #se o opcode for 43 vai para instrução sw
+	beq $t2, 0, tipo_r_label #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
 	j fim_switch
 	
+tipo_r_label:
+	jal get_funct_tipo_r #pega qual o campo funct e coloca em $v0
+	lw $a0, 4($sp) #restaura instrucao no $a0
+	beq $v0, 32, add_label #se o campo funct for igual a $v0 vai para add_label
+	
+	j fim_switch
+
+add_label:
+	la $a0, add_str #carrega a string da instrucao
+	jal printa_string
+	
+	#rd
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rd_tipo_r #retorna o registrador rd em $v0
+	move $a0, $v0 #move o registrador rd para $a0
+	jal decodifica_registrador #vai para procedimento que printa o registrador
+	jal printa_virgula_espaco #vai para procedimento que printa uma virgula seguida de espaco
+	
+	#rs
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rs_tipo_r #retorna o registrador rs em $v0
+	move $a0, $v0 #move o registrador rs para $a0
+	jal decodifica_registrador #vai para procedimento que printa o registrador
+	jal printa_virgula_espaco #vai para procedimento que printa uma virgula seguida de espaco
+	
+	#rt
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rt_tipo_r #retorna o registrador rt em $v0
+	move $a0, $v0 #move o registrador rt para $a0
+	jal decodifica_registrador #vai para procedimento que printa o registrador
+	
+	j fim_switch #vai para o fim_switch
+
 sw_label:
 	la $a0, sw_str #carrega 'sw ' em $a0
 	jal printa_string #printa a string acima
@@ -184,8 +218,8 @@ get_rs_tipo_i:
 
 get_rt_tipo_i:
 	#corpo do procedimento
-	sll $t1, $a0, 11 #shift left de 5 bits para pegar rs
-	srl $t1, $t1, 27 #shift right para isolar os 5 bits do rs
+	sll $t1, $a0, 11 #shift left de 11 bits para pegar rt
+	srl $t1, $t1, 27 #shift right para isolar os 27 bits do rt
 	move $v0, $t1 #seta retorno como registrador dos 5 bits
 	
 	#epilogo
@@ -193,9 +227,49 @@ get_rt_tipo_i:
 
 get_imm_tipo_i:
 	#corpo do procedimento
-	sll $t1, $a0, 16 #shift left de 5 bits para pegar rs
-	srl $t1, $t1, 16 #shift right para isolar os 5 bits do rs
+	sll $t1, $a0, 16 #shift left de 16 bits para pegar imm
+	srl $t1, $t1, 16 #shift right para isolar os 16 bits do imm
 	move $v0, $t1 #seta retorno como valor imediato de 16 bits
+	
+	#epilogo
+	jr $ra
+	
+get_rs_tipo_r:
+	#corpo do procedimento
+	sll $t1, $a0, 6 #shift left de 6 bits para pegar o rs
+	srl $v0, $t1, 27 #shift right para isolar os 5 bits do rs 
+	
+	#epilogo
+	jr $ra
+	
+get_rt_tipo_r:
+	#corpo do procedimento
+	sll $t1, $a0, 11 #shift left de 11 bits para pegar o rt
+	srl $v0, $t1, 27 #shift right para isolar os 5 bits do rt 
+	
+	#epilogo
+	jr $ra
+	
+get_rd_tipo_r:
+	#corpo do procedimento
+	sll $t1, $a0, 16 #shift left de 16 bits para pegar o rd
+	srl $v0, $t1, 27 #shift right para isolar os 5 bits do rd 
+	
+	#epilogo
+	jr $ra
+	
+get_shamt_tipo_r:
+	#corpo do procedimento
+	sll $t1, $a0, 21 #shift left de 21 bits para pegar o campo shamt
+	srl $v0, $t1, 27 #shift right para isolar o campo shamt
+	
+	#epilogo
+	jr $ra
+
+get_funct_tipo_r:
+	#corpo do procedimento
+	sll $t1, $a0, 26 #shift left de 26 bits para pegar o campo funct
+	srl $v0, $t1, 26 #shift right para isolar o campo funct
 	
 	#epilogo
 	jr $ra
@@ -203,3 +277,4 @@ get_imm_tipo_i:
 .data
 addiu_str: .asciiz "addiu "
 sw_str: .asciiz "sw "
+add_str: .asciiz "add "

@@ -73,6 +73,34 @@ identifica_instrucao:
 	beq $t2, 0, tipo_r_label #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
 	beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
 	beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
+	beq $t2, 5, bne_label #se o opcode for 5 vai para a instrução bne
+	j fim_switch
+	
+bne_label:
+	la $a0, bne_str #carrega a string bne em $a0
+	jal printa_string #vai para procedimento que printa a string de $a0
+	
+	#rs
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rs_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal decodifica_registrador #printa o registrador rs
+	jal printa_virgula_espaco #printa virgula e espaco
+	
+	#rt
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rt_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal decodifica_registrador #printa o registrador rs
+	jal printa_virgula_espaco #printa virgula e espaco
+	
+	#label
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_imm_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal printa_hexa #printa hexadecimal
+	
+	
 	j fim_switch
 	
 syscall_label:
@@ -362,3 +390,4 @@ jal_str: .asciiz "jal "
 lw_str: .asciiz "lw "
 addu_str: .asciiz "addu "
 syscall_str: .asciiz "syscall "
+bne_str: .asciiz "bne "

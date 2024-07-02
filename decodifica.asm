@@ -78,8 +78,35 @@ identifica_instrucao:
 	beq $t2, 28, tipo_r_label #se o opcode for 28 vai para instruções do tipo r
 	beq $t2, 2, j_label #se o opcode for 2 vai para instrução j
 	beq $t2, 15, lui_label #se o opcode for 15 vai para instrução lui
+	beq $t2, 13, ori_label #se o opcode for 13 vai para instrução ori
 	j fim_switch
 	
+ori_label:
+	la $a0, ori_str #carrega string em $a0
+	jal printa_string #printa a string em $a0
+	
+	#rt
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rt_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal decodifica_registrador #printa o registrador rs
+	jal printa_virgula_espaco #printa virgula e espaco
+	
+	#rs
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rs_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal decodifica_registrador #printa o registrador rs
+	jal printa_virgula_espaco #printa virgula e espaco
+	
+	#label
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_imm_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal printa_hexa #printa hexadecimal
+	
+	j fim_switch
+
 lui_label:
 	la $a0, lui_str #carrega string em $a0
 	jal printa_string #printa a string em $a0
@@ -140,26 +167,8 @@ bne_label:
 	la $a0, bne_str #carrega a string bne em $a0
 	jal printa_string #vai para procedimento que printa a string de $a0
 	
-	#rs
 	lw $a0, 4($sp) #recarrega instrucao
-	jal get_rs_tipo_i #move rs para $v0
-	move $a0, $v0 #seta $a0 para o rs
-	jal decodifica_registrador #printa o registrador rs
-	jal printa_virgula_espaco #printa virgula e espaco
-	
-	#rt
-	lw $a0, 4($sp) #recarrega instrucao
-	jal get_rt_tipo_i #move rs para $v0
-	move $a0, $v0 #seta $a0 para o rs
-	jal decodifica_registrador #printa o registrador rs
-	jal printa_virgula_espaco #printa virgula e espaco
-	
-	#label
-	lw $a0, 4($sp) #recarrega instrucao
-	jal get_imm_tipo_i #move rs para $v0
-	move $a0, $v0 #seta $a0 para o rs
-	jal printa_hexa #printa hexadecimal
-	
+	jal printa_tipo_i_2 #printa instrucao do tipo rs, rt, label
 	
 	j fim_switch
 	
@@ -462,6 +471,38 @@ printa_tipo_r_1:
 	addiu $sp, $sp, 8 #desaloca 8 bytes
 	jr $ra
 
+#printa instrucoes do tipo $rs, $rt, label/offset
+printa_tipo_i_2:
+	#prologo
+	addiu $sp, $sp, -8 #aloca 4 bytes para o argumento
+	sw $a0, 0($sp) #salva $a0
+	sw $ra, 4($sp) #salva $ra
+	
+	#rs
+	jal get_rs_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal decodifica_registrador #printa o registrador rs
+	jal printa_virgula_espaco #printa virgula e espaco
+	
+	#rt
+	lw $a0, 0($sp) #recarrega instrucao
+	jal get_rt_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal decodifica_registrador #printa o registrador rs
+	jal printa_virgula_espaco #printa virgula e espaco
+	
+	#label
+	lw $a0, 0($sp) #recarrega instrucao
+	jal get_imm_tipo_i #move rs para $v0
+	move $a0, $v0 #seta $a0 para o rs
+	jal printa_hexa #printa hexadecimal
+	
+	#epilogo
+	lw $a0, 0($sp) #restaura $a0
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes
+	jr $ra
+
 .data
 addiu_str: .asciiz "addiu "
 sw_str: .asciiz "sw "
@@ -476,3 +517,4 @@ mul_str: .asciiz "mul "
 jr_str: .asciiz "jr "
 j_str: .asciiz "j "
 lui_str: .asciiz "lui "
+ori_str: .asciiz "ori "

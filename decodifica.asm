@@ -65,12 +65,20 @@ identifica_instrucao:
 	move $t1, $a0 #seta $t1 para a instrução
 	move $t2, $a1 #seta $t2 para o opcode da instrucao
 	
+	addi $t3, $zero, 0x000c
+	
+	beq $t1, $t3, syscall_label #se for syscall vai para syscall_label
 	beq $t2, 9, addiu_label #se o opcode for 9 vai para a instrução addiu
 	beq $t2, 43, sw_label #se o opcode for 43 vai para instrução sw
 	beq $t2, 0, tipo_r_label #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
 	beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
 	beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
 	j fim_switch
+	
+syscall_label:
+	la $a0, syscall_str #carrega string do syscall
+	jal printa_string #printa string 
+	j fim_switch	#vai para o final do switch
 	
 lw_label:
 	la $a0, lw_str #carrega string lw em $a0
@@ -353,3 +361,4 @@ add_str: .asciiz "add "
 jal_str: .asciiz "jal "
 lw_str: .asciiz "lw "
 addu_str: .asciiz "addu "
+syscall_str: .asciiz "syscall "

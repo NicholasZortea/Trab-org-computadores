@@ -55,7 +55,7 @@ fim:
 	lw $t5, 16($sp)
 	lw $a0, 20($sp)
 	
-	addi $sp, $sp, 20 #reseta pilha
+	addi $sp, $sp, 24 #reseta pilha
 	jr $ra #volta para o procedimento chamador
 printa_4_bits:
 	move $t5, $a0

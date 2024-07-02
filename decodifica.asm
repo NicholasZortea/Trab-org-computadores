@@ -52,6 +52,10 @@ get_instrucao_opcode:
 #registrador
 #$t1 <- instrução
 #$t2 <- opcode	
+#pilha
+#0($sp) -> $ra
+#4($sp) -> $a0
+#8($sp) -> $a1
 identifica_instrucao:
 	addi $sp, $sp, -12 #abre espaço na pilha para 8 bytes
 	sw $ra, 0($sp) #armazena o $ra na pilha para restaurar posteriormente
@@ -64,70 +68,54 @@ identifica_instrucao:
 	beq $t2, 9, addiu_label #se o opcode for 9 vai para a instrução addiu
 	beq $t2, 43, sw_label #se o opcode for 43 vai para instrução sw
 	beq $t2, 0, tipo_r_label #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
+	beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
+	beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
+	j fim_switch
+	
+lw_label:
+	la $a0, lw_str #carrega string lw em $a0
+	jal printa_string #printa string contida em $a0
+	lw $a0, 4($sp) #recarrega instrucao 
+	jal printa_tipo_i_1 #printa o tipo de lw
+	j fim_switch
+	
+jal_label:
+	la $a0, jal_str #carrega a string de jal em $a0
+	jal printa_string #printa a string de $a0
+	
+	#target
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_target_tipo_j #retorna o target em $v0
+	move $a0, $v0 #seta o target em $a0
+	jal printa_hexa
 	j fim_switch
 	
 tipo_r_label:
 	jal get_funct_tipo_r #pega qual o campo funct e coloca em $v0
 	lw $a0, 4($sp) #restaura instrucao no $a0
-	beq $v0, 32, add_label #se o campo funct for igual a $v0 vai para add_label
-	
+	beq $v0, 32, add_label #se o campo funct for igual a 32 vai para add_label
+	beq $v0, 33, addu_label #se o campo funct for igual a 33 vai para addu_label
+	j fim_switch
+
+addu_label:
+	la $a0, addu_str #carrega a string addu em $a0
+	jal printa_string #printa a string de $a0
+	lw $a0, 4($sp) #recarrega instrucao
+	jal printa_tipo_r_1 #printa instrucao do tipo rd, rs, rt
 	j fim_switch
 
 add_label:
 	la $a0, add_str #carrega a string da instrucao
-	jal printa_string
-	
-	#rd
+	jal printa_string #printa a string de $a0
 	lw $a0, 4($sp) #recarrega instrucao
-	jal get_rd_tipo_r #retorna o registrador rd em $v0
-	move $a0, $v0 #move o registrador rd para $a0
-	jal decodifica_registrador #vai para procedimento que printa o registrador
-	jal printa_virgula_espaco #vai para procedimento que printa uma virgula seguida de espaco
-	
-	#rs
-	lw $a0, 4($sp) #recarrega instrucao
-	jal get_rs_tipo_r #retorna o registrador rs em $v0
-	move $a0, $v0 #move o registrador rs para $a0
-	jal decodifica_registrador #vai para procedimento que printa o registrador
-	jal printa_virgula_espaco #vai para procedimento que printa uma virgula seguida de espaco
-	
-	#rt
-	lw $a0, 4($sp) #recarrega instrucao
-	jal get_rt_tipo_r #retorna o registrador rt em $v0
-	move $a0, $v0 #move o registrador rt para $a0
-	jal decodifica_registrador #vai para procedimento que printa o registrador
-	
+	jal printa_tipo_r_1 #printa instrucao do tipo rd, rs, rt
 	j fim_switch #vai para o fim_switch
 
 sw_label:
 	la $a0, sw_str #carrega 'sw ' em $a0
 	jal printa_string #printa a string acima
-	
-	#rt
-	lw $a0, 4($sp) #carrega a instrução em $a0
-	jal get_rt_tipo_i #retorna em $v0 o registrador rt
-	move $a0, $v0 #move para o argumento o registrador rt
-	jal decodifica_registrador #printa o registrador rt
-	jal printa_virgula_espaco #printa virgula e um espaco
-	
-	#imm/offset
-	lw $a0, 4($sp) #carrega a instrução em $a0
-	jal get_imm_tipo_i #retorna em $v0 o offset
-	move $a0, $v0 #carrega o offset em $a0
-	jal printa_inteiro #printa como inteiro
-	
-	#rs
-	li $a0, '(' #carrega o caracter '(' em $a0
-	jal printa_caracter #printa o caracter contido em $a0
-	
-	lw $a0, 4($sp) #carrega a instrução em $a0
-	jal get_rs_tipo_i #retorna em $v0 o offset
-	move $a0, $v0 #move para o argumento o registrador rs
-	jal decodifica_registrador #printa o registrador rs
-	
-	li $a0, ')' #carrega o caracter ')' em $a0
-	jal printa_caracter #printa o caracter contido em $a0
-	
+	lw $a0, 4($sp) #recarrega instrucao
+	jal printa_tipo_i_1 #printa o tipo i de sw	
 	j fim_switch
 
 	
@@ -160,7 +148,7 @@ addiu_label:
 fim_switch:
 	lw $ra, 0($sp) #restaura o $ra para voltar a funcao certa
 	lw $a0, 4($sp) #restaura o registrador de argumento
-	lw $a0, 8($sp) #restaura o registrador de argumento
+	lw $a1, 8($sp) #restaura o registrador de argumento
 	
 	addi $sp, $sp 12 #restaura pilha
 	jr $ra
@@ -274,7 +262,94 @@ get_funct_tipo_r:
 	#epilogo
 	jr $ra
 
+get_target_tipo_j:
+	#corpo do procedimento
+	sll $v0, $a0, 6 #shift left de 6 bits para eliminar o opcode
+	srl $v0, $v0 4 #shift right de 4 bits para colocar 4 bits no msb e 2 no lsb
+	
+	#epilogo 
+	jr $ra
+	
+#printa instruções no estilo rt, imm(rs)
+#pilha 
+#0($sp) -> $a0
+#4($sp) -> $ra
+printa_tipo_i_1:
+	#prologo
+	addiu $sp, $sp, -8 #aloca 4 bytes para o argumento
+	sw $a0, 0($sp) #salva $a0
+	sw $ra, 4($sp) #salva $ra
+	
+	#rt
+	lw $a0, 0($sp) #carrega a instrução em $a0
+	jal get_rt_tipo_i #retorna em $v0 o registrador rt
+	move $a0, $v0 #move para o argumento o registrador rt
+	jal decodifica_registrador #printa o registrador rt
+	jal printa_virgula_espaco #printa virgula e um espaco
+	
+	#imm/offset
+	lw $a0, 0($sp) #carrega a instrução em $a0
+	jal get_imm_tipo_i #retorna em $v0 o offset
+	move $a0, $v0 #carrega o offset em $a0
+	jal printa_inteiro #printa como inteiro
+	
+	#rs
+	li $a0, '(' #carrega o caracter '(' em $a0
+	jal printa_caracter #printa o caracter contido em $a0
+	
+	lw $a0, 0($sp) #carrega a instrução em $a0
+	jal get_rs_tipo_i #retorna em $v0 o offset
+	move $a0, $v0 #move para o argumento o registrador rs
+	jal decodifica_registrador #printa o registrador rs
+	
+	li $a0, ')' #carrega o caracter ')' em $a0
+	jal printa_caracter #printa o caracter contido em $a0
+	
+	#epilogo
+	lw $a0, 0($sp) #restaura $a0
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes
+	jr $ra
+
+#printa instruções no estilo rd, rs, rt
+#pilha 
+#0($sp) -> $a0
+#4($sp) -> $ra
+printa_tipo_r_1:
+	#prologo
+	addiu $sp, $sp, -8 #aloca 4 bytes para o argumento
+	sw $a0, 0($sp) #salva $a0
+	sw $ra, 4($sp) #salva $ra
+
+	#rd
+	jal get_rd_tipo_r #retorna o registrador rd em $v0
+	move $a0, $v0 #move o registrador rd para $a0
+	jal decodifica_registrador #vai para procedimento que printa o registrador
+	jal printa_virgula_espaco #vai para procedimento que printa uma virgula seguida de espaco
+	
+	#rs
+	lw $a0, 0($sp) #recarrega instrucao
+	jal get_rs_tipo_r #retorna o registrador rs em $v0
+	move $a0, $v0 #move o registrador rs para $a0
+	jal decodifica_registrador #vai para procedimento que printa o registrador
+	jal printa_virgula_espaco #vai para procedimento que printa uma virgula seguida de espaco
+	
+	#rt
+	lw $a0, 0($sp) #recarrega instrucao
+	jal get_rt_tipo_r #retorna o registrador rt em $v0
+	move $a0, $v0 #move o registrador rt para $a0
+	jal decodifica_registrador #vai para procedimento que printa o registrador
+
+	#epilogo
+	lw $a0, 0($sp) #restaura $a0
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes
+	jr $ra
+
 .data
 addiu_str: .asciiz "addiu "
 sw_str: .asciiz "sw "
 add_str: .asciiz "add "
+jal_str: .asciiz "jal "
+lw_str: .asciiz "lw "
+addu_str: .asciiz "addu "

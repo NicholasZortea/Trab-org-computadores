@@ -74,8 +74,36 @@ identifica_instrucao:
 	beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
 	beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
 	beq $t2, 5, bne_label #se o opcode for 5 vai para a instrução bne
+	beq $t2, 8, addi_label #se o opcode for 5 vai para a instrução addi
+	beq $t2, 28, tipo_r_label #se o opcode for 28 vai para instruções do tipo r
 	j fim_switch
 	
+addi_label:
+	la $a0, addi_str #carrega string em $a0
+	jal printa_string #printa string de $a0
+	
+	
+	#rt
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rt_tipo_i #pega rt em $v0
+	move $a0, $v0 #seta $a0 para o registrador rt
+	jal decodifica_registrador #printa o registrador rt
+	jal printa_virgula_espaco #printa virgula e espaco
+	
+	#rs
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_rs_tipo_i #pega rs em $v0
+	move $a0, $v0 #seta $a0 para o registrador rs
+	jal decodifica_registrador #printa o registrador rs
+	jal printa_virgula_espaco #printa virgula e espaco
+	
+	#imm
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_imm_tipo_i #pega imm em $v0
+	move $a0, $v0 #seta $a0 para o registrador imm
+	jal printa_imm #printa o imm
+	j fim_switch
+
 bne_label:
 	la $a0, bne_str #carrega a string bne em $a0
 	jal printa_string #vai para procedimento que printa a string de $a0
@@ -131,6 +159,26 @@ tipo_r_label:
 	lw $a0, 4($sp) #restaura instrucao no $a0
 	beq $v0, 32, add_label #se o campo funct for igual a 32 vai para add_label
 	beq $v0, 33, addu_label #se o campo funct for igual a 33 vai para addu_label
+	beq $v0, 2, mul_label #se o campo funct for igual a 2 vai para mul_label
+	beq $v0, 8, jr_label #se o campo funct for igual a 8 vai para jr_label
+	j fim_switch
+	
+jr_label:
+	la $a0, jr_str #carrega string
+	jal printa_string #printa a string
+	
+	lw $a0, 4($sp) #restaura instrucao
+	jal get_rs_tipo_r #move rs para $v0
+	move $a0, $v0 #move rs para $a0
+	jal decodifica_registrador #printa o registrador rs
+	j fim_switch
+
+mul_label:
+	la $a0, mul_str #carrega string
+	jal printa_string #printa string
+	
+	lw $a0, 4($sp) #carrega instrucao
+	jal printa_tipo_r_1 #printa instrucao do tipo rd, rs, rt
 	j fim_switch
 
 addu_label:
@@ -391,3 +439,6 @@ lw_str: .asciiz "lw "
 addu_str: .asciiz "addu "
 syscall_str: .asciiz "syscall "
 bne_str: .asciiz "bne "
+addi_str: .asciiz "addi "
+mul_str: .asciiz "mul "
+jr_str: .asciiz "jr "

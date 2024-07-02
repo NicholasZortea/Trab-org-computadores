@@ -40,12 +40,12 @@ decodifica:
 	jr $ra #volta para o local onde chamou esse procedimento
 	
 get_instrucao_opcode:
-	addi $sp, $sp, -8
-	sw $a0, 4($sp)
+	addi $sp, $sp, -8 #abre 8 bytes
+	sw $a0, 4($sp) #armzanea $a0 
 	sw $ra, 0($sp) #armazena o $ra na pilha para restaurar posteriormente
 	srl $v0, $a0, 26 #shift para direita de 26 casas para pegar o opcode
 	lw $ra, 0($sp) #restaura o $ra para voltar a funcao certa
-	lw $a0, 4($sp)
+	lw $a0, 4($sp) #restaura $a0
 	addi $sp, $sp 8 #restaura pilha
 	jr $ra
 	
@@ -76,7 +76,39 @@ identifica_instrucao:
 	beq $t2, 5, bne_label #se o opcode for 5 vai para a instrução bne
 	beq $t2, 8, addi_label #se o opcode for 5 vai para a instrução addi
 	beq $t2, 28, tipo_r_label #se o opcode for 28 vai para instruções do tipo r
+	beq $t2, 2, j_label #se o opcode for 2 vai para instrução j
+	beq $t2, 15, lui_label #se o opcode for 15 vai para instrução lui
 	j fim_switch
+	
+lui_label:
+	la $a0, lui_str #carrega string em $a0
+	jal printa_string #printa a string em $a0
+	
+	#rt
+	lw $a0, 4($sp) #recarrega instrução
+	jal get_rt_tipo_i #move rt para $v0
+	move $a0, $v0 #move rt para $a0
+	jal decodifica_registrador #printa o registrador
+	jal printa_virgula_espaco #printa uma virgula e um espaco
+	
+	#imm
+	lw $a0, 4($sp) #recarrega instrucao
+	jal get_imm_tipo_i #move imm para $v0
+	move $a0, $v0 #seta $a0 para o imm
+	jal printa_hexa #printa sabado
+	
+	j fim_switch
+	
+j_label:
+	la $a0, j_str #carrega string
+	jal printa_string #printa a string j
+	
+	lw $a0, 4($sp) #restaura instrucao
+	jal get_target_tipo_j #move target da instrução para $v0
+	move $a0, $v0 #move target para $a0
+	jal printa_hexa #printa o target
+	
+	j fim_switch #vai para o fim do switch
 	
 addi_label:
 	la $a0, addi_str #carrega string em $a0
@@ -442,3 +474,5 @@ bne_str: .asciiz "bne "
 addi_str: .asciiz "addi "
 mul_str: .asciiz "mul "
 jr_str: .asciiz "jr "
+j_str: .asciiz "j "
+lui_str: .asciiz "lui "

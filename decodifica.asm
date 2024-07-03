@@ -2,6 +2,9 @@
 .text
 .globl decodifica
 .globl get_instrucao_opcode
+.globl get_rs_tipo_i
+.globl get_imm_tipo_i
+.globl get_rt_tipo_i
 #####################################
 #registradores			    #
 #em $s1 <- instrução lida do buffer #
@@ -322,20 +325,35 @@ fim:
 	jr $ra
 	
 get_rs_tipo_i:
+	addiu $sp, $sp, -8 #aloca 8 bytes 
+	sw $t1, 0($sp) #armazena $t1
+	sw $ra, 4($sp) #armazena $ra
+	
 	#corpo do procedimento
 	sll $t1, $a0, 6 #shift left de 6 bits para pegar rs
 	srl $t1, $t1, 27 #shift right para isolar os 5 bits do rs
 	move $v0, $t1 #seta retorno como registrador dos 5 bits
+	
 	#epilogo
+	lw $t1, 0($sp) #restaura $t1
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes 
 	jr $ra
 
 get_rt_tipo_i:
+	addiu $sp, $sp, -8 #aloca 8 bytes 
+	sw $t1, 0($sp) #armazena $t1
+	sw $ra, 4($sp) #armazena $ra
+	
 	#corpo do procedimento
 	sll $t1, $a0, 11 #shift left de 11 bits para pegar rt
 	srl $t1, $t1, 27 #shift right para isolar os 27 bits do rt
 	move $v0, $t1 #seta retorno como registrador dos 5 bits
 	
 	#epilogo
+	lw $t1, 0($sp) #restaura $t1
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes 
 	jr $ra
 
 get_imm_tipo_i:
@@ -348,11 +366,17 @@ get_imm_tipo_i:
 	jr $ra
 	
 get_rs_tipo_r:
+	addiu $sp, $sp, -8 #aloca 8 bytes 
+	sw $t1, 0($sp) #armazena $t1
+	sw $ra, 4($sp) #armazena $ra
 	#corpo do procedimento
 	sll $t1, $a0, 6 #shift left de 6 bits para pegar o rs
 	srl $v0, $t1, 27 #shift right para isolar os 5 bits do rs 
 	
 	#epilogo
+	lw $t1, 0($sp) #restaura $t1
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes 
 	jr $ra
 	
 get_rt_tipo_r:

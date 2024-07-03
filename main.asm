@@ -2,6 +2,7 @@
 .globl main
 main: 	
 	jal armazena_instrucoes #le instrucao por instrucao e armazena em um segmento de texto simulado
+	jal carrega_endereco_sp_nos_registradores #registradores[29] = valor de SP 
 	j enquanto_houver_instrucoes #pula para a condicao
 faca:	
 	jal printa_PC #printa o endereco de PC em hexadecimal
@@ -26,7 +27,7 @@ printa_instrucao:
 	addiu $sp, $sp, -4 #aloca 4 bytes
 	sw $ra, 0($sp) #armazena $ra
 	
-	jal retorna_instrucao_do_IR #$v0 <- instrucao atual
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
 	move $a0, $v0 #$a0 <- instrucao atual
 	jal printa_hexa #vai para o procedimento que printa a instrucao de $a0 em hexadecimal
 	jal decodifica #vai para procedimento que printa a instrucao
@@ -101,6 +102,40 @@ busca_instrucao:
 	addiu $sp, $sp, 20 #desaloca 20 bytes
 	jr $ra
 	
+carrega_endereco_sp_nos_registradores:
+	#prologo
+	addiu $sp, $sp, -20 #aloca 20 bytes
+	sw $t1, 0($sp) #armazena $t1
+	sw $t2, 4($sp) #armazena $t2
+	sw $t3, 8($sp) #armazena $t3
+	sw $t4, 12($sp) #armazena $t4
+	sw $ra, 16($sp) #armazena $ra
+
+	#carrega valor da pilha em $t1
+	la $t1, SP #$t1 <- endereco SP
+	
+	#carrega endereco inicial da pilha em $t4
+	la $t4, espaco_pilha #$t4 <- endereco base de espaco_pilha
+	addiu $t4, $t4, 1024 #$t4 <- endereco base de espaco_pilha + 1024 = topo da pilha
+	
+	sw $t4, 0($t1) #salva o topo da pilha em SP
+	lw $t1, 0($t1) #$t1 <- endereco do topo da pilha
+	
+	la $t2, registradores #$t2 <- endereco dos registradores
+	addiu $t3, $zero, 29 #$t3 <- numero do registrador sp (29)
+	sll $t3, $t3, 2 #$t3 <- 29 * 4 = 116 endereco efetivo de sp
+	add $t3, $t2, $t3 #$t3 <- endereco base dos registradores + endereco efetivo de sp = endereco do registrador sp
+	sw $t1, 0($t3) #registrador sp <- endereco apontado por SP
+	
+	#epilogo
+	lw $t1, 0($sp) #retorna $t1
+	lw $t2, 4($sp) #retorna $t2
+	lw $t3, 8($sp) #retorna $t3
+	lw $t4, 12($sp) #retorna $t4
+	lw $ra, 16($sp) #retorna $ra
+	addiu $sp, $sp, 20 #desaloca 20 bytes
+	jr $ra	
+
 #le instrucao por instrucao e armazena no segmento simulado de texto
 #registradores
 #$t0 -> endereco do segmento de instrucoes
@@ -159,7 +194,8 @@ executa:
 	sw $s0, 8($sp) #armazena $s0
 	
 	#corpo do procedimento
-	jal armazena_instrucao_no_IR #armazena instrucao contida em $a0 em IR
+	jal get_instrucao_do_IR #$V0 <- IR
+	move $a0, $v0 #$a0 <- IR instrucao atual
 	jal get_instrucao_opcode  #pega o opcode da instrucao contida em $a0
 	move $a0, $v0 #seta o opcode em $v0
 	jal identifica_instrucao #vai para o procedimento que identifica a instrucao
@@ -183,7 +219,7 @@ identifica_instrucao:
 	addi $t3, $zero, 0x000c
 	
 	#beq $t1, $t3, syscall_exec #se for syscall vai para syscall
-	#beq $t2, 9, addiu_label #se o opcode for 9 vai para a instrução addiu
+	beq $t2, 9, addiu_exec #se o opcode for 9 vai para a instrução addiu
 	#beq $t2, 43, sw_label #se o opcode for 43 vai para instrução sw
 	#beq $t2, 0, tipo_r_label #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
 	#beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
@@ -196,9 +232,44 @@ identifica_instrucao:
 	#beq $t2, 13, ori_label #se o opcode for 13 vai para instrução ori
 	j fim_switch
 	
-
+#$t1 <-	rs
+#$t2 <-	rt
+#$t3 <-	imm
+#$t4 <- instrucao
+addiu_exec:
+	#rs
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $t4, $v0 #$t4 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	jal get_rs_tipo_i #$v0 <- rs
+	move $t1, $v0 #$t1 <- $v0
+	move $a0, $t1 #$a0 <- rs
+	jal get_valor_registrador #$v0 <- valor contido do $rs do segmento simulado de registradores
+	move $t1, $v0 #$t1 <- valor do registrador rs
 	
-
+	#rt
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal get_rt_tipo_i #$v0 <- rt
+	move $t2, $v0 #$t2 <- $v0
+	move $a0, $t2 #$a0 <- rt
+	jal get_valor_registrador #$v0 <- valor contido do $rt do segmento simulado de registradores
+	move $t2, $v0 #$t1 <- valor do registrador rs
+	
+	#imm
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal get_imm_tipo_i #$v0 <- imm
+	move $a0, $v0 #$a0 <- imm 
+	jal extende_imm #procedimento para extender o numero
+	move $t3, $v0 #$t3 <- $v0
+	
+	addu $t1, $t2, $t3 #soma o valor de $t2 com imm e armazena em $t1
+	move $a0, $t4 #$a0 <- instrucao
+	jal get_rs_tipo_i #$v0 <- rs
+	move $a0, $v0 #$a0 <- rs
+	move $a1, $t1 #$a1 <- resultado da operacao
+	
+	jal set_valor_registrador#armazena o valor no endereco do registrador
+	j fim_switch
 	
 fim_switch:
 	lw $ra, 0($sp) #restaura o $ra para voltar a funcao certa
@@ -223,7 +294,49 @@ armazena_instrucao_no_IR:
 	addi $sp, $sp, 8 #desaloca 8 bytes
 	jr $ra
 	
-retorna_instrucao_do_IR:
+#recebe o valor que representa o registrador em $a0	
+get_endereco_registrador:
+	#prologo
+	addi $sp, $sp, -8 #aloca 8 bytes
+	sw $t0, 0($sp) #armazena $t0
+	sw $ra, 4($sp) #armazena $ra
+	
+	la $t0, registradores #$t0 <- endereco base dos registradores
+	sll $a0, $a0, 2 #valor que representa o registrador * 4 = posicao no vetor de registradores
+	add $v0, $a0, $t0 #$v0 <- endereco base dos registradores + posicao = registradores[posicao]
+	
+	#epilogo
+	lw $t0, 0($sp) #restaura $t0
+	lw $ra, 4($sp) #restaura $ra
+	addi $sp, $sp, 8 #desaloca 8 bytes
+	jr $ra
+	
+#$a0 <- recebe qual o registrador a ser procurado o valor
+get_valor_registrador:
+	addiu $sp, $sp -4 #aloca 4 bytes
+	sw $ra, 0($sp) #armazena $ra
+	
+	jal get_endereco_registrador #$v0 <- endereco do registrador procurado
+	lw $v0, 0($v0) #$v0 <- valor contido no registrador
+	
+	lw $ra, 0($sp) #restaura $ra
+	addiu $sp, $sp, 4 #desaloca 4 bytes
+	jr $ra
+
+#a0 <- valor que representa o registrador 
+#a1 <- valor a ser salvo
+set_valor_registrador:
+	addiu $sp, $sp -4 #aloca 4 bytes
+	sw $ra, 0($sp) #armazena $ra
+	
+	jal get_endereco_registrador #$v0 <- endereco do registrador procurado
+	sw $a1, 0($v0) #salva o valor no registrador
+	
+	lw $ra, 0($sp) #restaura $ra
+	addiu $sp, $sp, 4 #desaloca 4 bytes
+	jr $ra
+
+get_instrucao_do_IR:
 	#prologo
 	addi $sp, $sp, -8 #aloca 8 bytes
 	sw $t1, 0($sp) #salva $t1
@@ -237,6 +350,30 @@ retorna_instrucao_do_IR:
 	lw $ra, 4($sp) #retorna $ra
 	addi $sp, $sp, 8 #desaloca 8 bytes
 	jr $ra
+
+#$a0 <- recebe imm para ser extendido	
+extende_imm:
+	#prologo
+	addi $sp, $sp, -12 #aloca 12 bytes
+	sw $t1, 0($sp) #salva $t1
+	sw $ra, 4($sp) #salva $ra
+	sw $t0, 8($sp) #salva $t0
+	
+	srl $t0, $a0, 15 #shift right para pegar o msb
+	beq $t0, 1, negativo #se $t0 for igual a 1 significa que eh um numero negativo que precisa ser extendido com 1
+	j fim
+negativo:
+	lui $t1, 0xffff #preenche o numero com 1111
+	or $a0, $a0, $t1 #faz or para extender o sinal
+fim:	
+	move $v0, $a0 #$v0 <- numero extendido
+	
+	lw $t1, 0($sp) #retorna $t1
+	lw $ra, 4($sp) #retorna $ra
+	lw $t0, 8($sp) #salva $t0
+	addi $sp, $sp, 12 #desaloca 12 bytes
+	jr $ra	
+	
 .data
 registradores: .space 128 #32 registradores * 4 bytes cada
 SP: .word 0x7FFFFFFC #a pilha "cresce" para baixo portanto começa no maior endereço possível

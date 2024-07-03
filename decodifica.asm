@@ -1,7 +1,7 @@
 
 .text
 .globl decodifica
-
+.globl get_instrucao_opcode
 #####################################
 #registradores			    #
 #em $s1 <- instrução lida do buffer #

@@ -57,7 +57,7 @@ get_instrucao_opcode:
 #4($sp) -> $a0
 #8($sp) -> $a1
 identifica_instrucao:
-	addi $sp, $sp, -12 #abre espaço na pilha para 8 bytes
+	addi $sp, $sp, -12 #abre espaço na pilha para 12 bytes
 	sw $ra, 0($sp) #armazena o $ra na pilha para restaurar posteriormente
 	sw $a0, 4($sp) #armazena o registrador de argumento na pilha (instrução)
 	sw $a1, 8($sp) #armazena o registrador de argumento na pilha (opcode)

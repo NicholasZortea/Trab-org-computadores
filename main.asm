@@ -1,34 +1,26 @@
 .text
 .globl main
-########################
-#mapa dos registradores#
-#$s0 -> file descriptor do arquivo binario sendo lido
-#$s1 -> palavra carregada do buffer
-#$s3 -> registrador que vai conter o valor 4 para comparações de quantidade de bytes lidos
-#$s4 -> registrador que simula o PC, vai começar em 0x00400000
-main: 
-	jal abre_arquivo #procedimento para abrir o arquivo
-	move $s0, $v0 #move o file descriptor retornado para $s0
-	addi $s3, $zero, 4 #adicina o valor 4 ao registrador $s3
-	li $s4, 0x00400000 #inicia o Program Counter
-	j enquanto_ler_4_bytes #pula para a condicao
-faça:	
-	move $a0, $s4 #move o PC para o registrador de argumento
-	jal printa_hexa #chama procedimento para printar o PC em hexadecimal
-
-	jal get_buffer_word #procedimento para retornar o que esta no buffer para o registrador $v0
-	move $s1, $v0 #seta conteudo de $v0 em $s1
-	move $a0, $s1 #passa para o argumento a word do conteudo do buffer
-	jal printa_hexa #vai para o procedimento que printa a palavra carregada do buffer em hexadecimal
+main: 	
+	jal armazena_instrucoes #le instrucao por instrucao e armazena em um segmento de texto simulado
+	j enquanto_houver_instrucoes #pula para a condicao
+faca:	
+	jal printa_PC #printa o endereco de PC
+	jal busca_instrucao #IR <- instrucao atual
+	jal retorna_instrucao_do_IR #$v0 <- instrucao atual
+	
+	move $a0, $v0 #$a0 <- instrucao atual
+	jal printa_hexa #vai para o procedimento que printa a instrucao de $a0
 	jal decodifica #vai para procedimento que printa a instrucao
+	
 	move $a0, $s1
 	jal executa 
 	
 	jal printa_linha_vazia
-	addi $s4, $s4, 4 #adiciona 4 no PC
-enquanto_ler_4_bytes:
-	jal le_arquivo
-	beq $s3, $v0, faça #compara o registrador $v0 com o $s3, se $v0 for igual a 4 vai para faça
+	jal incrementa_PC #PC += 4
+	jal decrementa_instrucoes #nmr_instrucoes -= 1
+enquanto_houver_instrucoes:
+	jal get_numero_instrucoes #$v0 <- numero de instrucoes
+	bgtz $v0, faca #se $v0 > 0 vai para faca
 fim_condição:
 	jal fecha_arquivo
 	#termina o programa
@@ -36,6 +28,115 @@ fim_condição:
 	syscall
 	
 
+printa_PC:
+	#prologo
+	addiu $sp, $sp -4 #aloca 4 bytes
+	sw $ra, 0($sp) #armazena $ra
+	
+	#corpo do procedimento
+	la $t1, PC #$t1 <- endereco de PC
+	lw $t1, 0($t1) #$t1 <- valor de PC
+	move $a0, $t1 #$a0 <- valor de PC
+	jal printa_hexa #printa o PC em hexadecimal
+	
+	#epilogo
+	lw $ra, 0($sp) #armazena $ra
+	addiu $sp, $sp 4 #desaloca 4 bytes
+	jr $ra
+
+get_numero_instrucoes:
+	la $t1, nmr_instrucoes #$t1 <- endereco do numero_instrucoes
+	lw $v0, 0($t1) #$v0 <- numero de instrucoes
+	jr $ra
+	
+incrementa_PC:
+	la $t1, PC #$t1 <- endereco de PC
+	lw $t2, 0($t1) #$t2 <- valor de PC
+	add $t2, $t2, 4 #$t2 <- PC + 4
+	sw $t2, 0($t1) #PC <- PC + 4
+	jr $ra
+	
+decrementa_instrucoes:
+	la $t1, nmr_instrucoes #$t1 <- endereco de nmr_instrucoes
+	lw $t2, 0($t1) #$t2 <- numero de instrucoes
+	sub $t2, $t2, 1 #$t2 <- numero de instrucoes -1 
+	sw $t2, 0($t1) #nmr_instrucoes <- numero de instrucoes -1 
+	jr $ra
+	
+#esse procedimento procura no segmento de texto a instrucao que corresponde ao PC e carrega em IR
+busca_instrucao:
+	#prologo
+	addiu $sp, $sp, -20 #aloca 20 bytes
+	sw $t1, 0($sp) #armazena $t1
+	sw $t2, 4($sp) #armazena $t2
+	sw $t3, 8($sp) #armazena $t3
+	sw $t4, 12($sp) #armazena $t4
+	sw $ra, 16($sp) #armazena $ra
+
+	move $t1, $zero #t1 <- 0
+	lui $t1, 0x0040 #carrega a parte superior do numero hexadecimal 0x0040 0000 em $t1
+	la $t2, PC #$t2 <- endereco de PC
+	la $t3, instrucoes #$t3 <- endereco do segmento de instrucoes
+	lw $t4, 0($t2) #$t4 <- valor efetivo de PC
+	sub $t4, $t4, $t1 #$t4 <- valor efetivo de PC - 0x0040 0000 = instrucao atual
+	add $t4, $t4, $t3 #t$4 <- endereco da instrucao atual
+	lw $t4, 0($t4) #$t4 <- instrucao atual
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal armazena_instrucao_no_IR #IR <- $a0
+	
+	#epilogo
+	lw $t1, 0($sp) #retorna $t1
+	lw $t2, 4($sp) #retorna $t2
+	lw $t3, 8($sp) #retorna $t3
+	lw $t4, 12($sp) #retorna $t4
+	lw $ra, 16($sp) #retorna $ra
+	addiu $sp, $sp, 20 #desaloca 20 bytes
+	jr $ra
+	
+#le instrucao por instrucao e armazena no segmento simulado de texto
+#registradores
+#$t0 -> endereco do segmento de instrucoes
+#pilha
+#0($sp) -> $a0
+#4($sp) -> $ra
+#8($sp) -> $t0
+armazena_instrucoes:
+	#prologo
+	addi $sp, $sp, -12 #abre 12 bytes de espaco na pilha
+	sw $a0, 0($sp) #armazena $a0
+	sw $ra, 4($sp) #armazena $ra
+	sw $t0, 8($sp) #armazena $t0
+	
+	#corpo do procedimento
+	jal abre_arquivo #abre o arquivo de instrucoe
+	move $s0, $v0 #move o file descriptor retornado para $s0
+	move $t1, $zero #seta o $t1 para zero
+armazena_loop:
+	move $a0, $s0 #move o file descriptor para o argumento
+	jal le_arquivo
+	bne $v0, 4, armazena_fim #se $v0 for diferente de 4 vai para o armazena fim
+	jal get_buffer_word #pega a instrucao que esta no buffer
+	la $t0, instrucoes #pega endereco base das instrucoes
+	add $t0, $t0, $t1 #incrementa de acordo com o contador
+	sw $v0, 0($t0) #armazena a instrucao na posicao certa
+	addi $t1, $t1, 4 #incrementa em 4 o contador
+	
+	#incrementa nmr de instrucoes
+	la $t0, nmr_instrucoes #carrega endereco da variavel
+	lw $t2, 0($t0) #carrega o nmr de instrucoes em $t2
+	addi $t2, $t2, 1 #incrementa em 1 $t2
+	sw $t2, 0($t0) #salva o novo numero de instrucoes 
+	
+	j armazena_loop #vai para o armazena_loop
+	
+armazena_fim:
+	#epilogo
+	jal fecha_arquivo
+	lw $a0, 0($sp) #restaura $a0
+	lw $ra, 4($sp) #restaura $ra
+	lw $t0, 8($sp) #restaura $t0
+	addi $sp, $sp, 12 #
+	jr $ra
 #pilha
 # 0($sp) -> $a0
 # 4($sp) -> $ra
@@ -52,27 +153,87 @@ executa:
 	#corpo do procedimento
 	jal armazena_instrucao_no_IR #armazena instrucao contida em $a0 em IR
 	jal get_instrucao_opcode  #pega o opcode da instrucao contida em $a0
-	
+	move $a0, $v0 #seta o opcode em $v0
+	jal identifica_instrucao #vai para o procedimento que identifica a instrucao
 	
 	#epilogo
+	lw $a0, 0($sp) #restaura $a0
+	lw $ra, 4($sp) #restaura $ra
+	lw $s0, 8($sp) #restaura $s0
 	addi $sp, $sp, 12 #
-	sw $a0, 0($sp) #restaura $a0
-	sw $ra, 4($sp) #restaura $ra
-	sw $s0, 8($sp) #restaura $s0
 	jr $ra
 	
+identifica_instrucao:
+	addi $sp, $sp, -12 #abre espaço na pilha para 12 bytes
+	sw $ra, 0($sp) #armazena o $ra na pilha para restaurar posteriormente
+	sw $a0, 4($sp) #armazena o registrador de argumento na pilha (instrução)
+	sw $a1, 8($sp) #armazena o registrador de argumento na pilha (opcode)
+	
+	move $t1, $a0 #seta $t1 para a instrução
+	move $t2, $a1 #seta $t2 para o opcode da instrucao
+	
+	addi $t3, $zero, 0x000c
+	
+	#beq $t1, $t3, syscall_exec #se for syscall vai para syscall
+	#beq $t2, 9, addiu_label #se o opcode for 9 vai para a instrução addiu
+	#beq $t2, 43, sw_label #se o opcode for 43 vai para instrução sw
+	#beq $t2, 0, tipo_r_label #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
+	#beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
+	#beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
+	#beq $t2, 5, bne_label #se o opcode for 5 vai para a instrução bne
+	#beq $t2, 8, addi_label #se o opcode for 5 vai para a instrução addi
+	#beq $t2, 28, tipo_r_label #se o opcode for 28 vai para instruções do tipo r
+	#beq $t2, 2, j_label #se o opcode for 2 vai para instrução j
+	#beq $t2, 15, lui_label #se o opcode for 15 vai para instrução lui
+	#beq $t2, 13, ori_label #se o opcode for 13 vai para instrução ori
+	j fim_switch
+	
+
+	
+
+	
+fim_switch:
+	lw $ra, 0($sp) #restaura o $ra para voltar a funcao certa
+	lw $a0, 4($sp) #restaura o registrador de argumento
+	lw $a1, 8($sp) #restaura o registrador de argumento
+	
+	addi $sp, $sp 12 #restaura pilha
+	jr $ra
 	
 armazena_instrucao_no_IR:
+	#prologo
+	addi $sp, $sp, -8 #aloca 8 bytes
+	sw $t1, 0($sp) #salva $t1
+	sw $ra, 4($sp) #salva $ra
+	
 	la $t1, IR #carrega endereco
 	sw $a0, 0($t1) #armazena em IR
+	
+	#epilogo
+	lw $t1, 0($sp) #retorna $t1
+	lw $ra, 4($sp) #retorna $ra
+	addi $sp, $sp, 8 #desaloca 8 bytes
 	jr $ra
 	
 retorna_instrucao_do_IR:
+	#prologo
+	addi $sp, $sp, -8 #aloca 8 bytes
+	sw $t1, 0($sp) #salva $t1
+	sw $ra, 4($sp) #salva $ra
+	
 	la $t1, IR #carrega endereco
-	lw $v0, 0($t1) #restorna instrucao
+	lw $v0, 0($t1) #retorna instrucao
+	
+	#epilogo
+	lw $t1, 0($sp) #retorna $t1
+	lw $ra, 4($sp) #retorna $ra
+	addi $sp, $sp, 8 #desaloca 8 bytes
 	jr $ra
 .data
 registradores: .space 128 #32 registradores * 4 bytes cada
-pilha: .word 0x7FFFFFFC #a pilha "cresce" para baixo portanto começa no maior endereço possível
+SP: .word 0x7FFFFFFC #a pilha "cresce" para baixo portanto começa no maior endereço possível
 IR: .word 0 #instruction register
-
+nmr_instrucoes: .word 0 #quantidade total de instrucoes no programa
+instrucoes: .space 2048 #limite de 512 instrucoes
+PC: .word 0x00400000 #Program counter começa apontando para esse endereço
+espaco_pilha: .space 1024 #limite na pilha de 1024 bytes

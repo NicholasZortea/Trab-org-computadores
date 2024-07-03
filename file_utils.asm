@@ -12,10 +12,10 @@ abre_arquivo:
 	syscall #faz chamada para ler o arquivo
 	jr $ra
 
+#recebe o file descriptor em $a0
 le_arquivo:
 	#le o arquivo
 	li $v0, 14 #syscall para ler o arquivo
-	move $a0, $s0 #passa o file descriptor como argumento 
 	la $a1, buffer #buffer que guarda todo o conteudo do arquivo
 	li $a2, 4 #hardcoded tamanho do buffer
 	syscall
@@ -27,7 +27,17 @@ fecha_arquivo:
 	syscall #chama o serviço
 	jr $ra #volta para a main
 
+#pilha
+#0($sp) -> $t1
+#4($sp) -> $t2
+#8($sp) -> $t3
 get_buffer_word:
+	#prologo
+	addiu $sp, $sp, -12 #abre 12 bytes na pilha
+	sw $t1, 0($sp) #armazena registrador temporario
+	sw $t2, 4($sp) #armazena registrador temporario
+	sw $t3, 8($sp) #armazena registrador temporario
+	
 	la $t1, buffer
 	lb $t2, 0($t1)
 	move $t3, $zero
@@ -50,6 +60,12 @@ get_buffer_word:
 	or $t3, $t3, $t2
 	
 	move $v0, $t3
+	
+	
+	lw $t1, 0($sp) #restaura registrador temporario
+	lw $t2, 4($sp) #restaura registrador temporario
+	lw $t3, 8($sp) #restaura registrador temporario
+	addiu $sp, $sp, 12 #retira 12 bytes na pilha
 	jr $ra
 
 .data

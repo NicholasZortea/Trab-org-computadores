@@ -4,29 +4,37 @@ main:
 	jal armazena_instrucoes #le instrucao por instrucao e armazena em um segmento de texto simulado
 	j enquanto_houver_instrucoes #pula para a condicao
 faca:	
-	jal printa_PC #printa o endereco de PC
+	jal printa_PC #printa o endereco de PC em hexadecimal
 	jal busca_instrucao #IR <- instrucao atual
-	jal retorna_instrucao_do_IR #$v0 <- instrucao atual
 	
-	move $a0, $v0 #$a0 <- instrucao atual
-	jal printa_hexa #vai para o procedimento que printa a instrucao de $a0
-	jal decodifica #vai para procedimento que printa a instrucao
+	jal printa_instrucao #printa a instrucao em hexa e sua versao traduzida para assembly
 	
-	move $a0, $s1
 	jal executa 
 	
-	jal printa_linha_vazia
 	jal incrementa_PC #PC += 4
 	jal decrementa_instrucoes #nmr_instrucoes -= 1
 enquanto_houver_instrucoes:
 	jal get_numero_instrucoes #$v0 <- numero de instrucoes
 	bgtz $v0, faca #se $v0 > 0 vai para faca
-fim_condição:
+fim_condicao:
 	jal fecha_arquivo
 	#termina o programa
 	li $v0, 10
 	syscall
 	
+printa_instrucao:
+	addiu $sp, $sp, -4 #aloca 4 bytes
+	sw $ra, 0($sp) #armazena $ra
+	
+	jal retorna_instrucao_do_IR #$v0 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	jal printa_hexa #vai para o procedimento que printa a instrucao de $a0 em hexadecimal
+	jal decodifica #vai para procedimento que printa a instrucao
+	jal printa_linha_vazia #printa o caracter '\n'
+	
+	lw $ra, 0($sp) #restaura $ra
+	addiu $sp, $sp, 4 #desaloca 4 bytes
+	jr $ra
 
 printa_PC:
 	#prologo

@@ -262,10 +262,11 @@ addiu_exec:
 	jal extende_imm #procedimento para extender o numero
 	move $t3, $v0 #$t3 <- $v0
 	
-	addu $t1, $t2, $t3 #soma o valor de $t2 com imm e armazena em $t1
+	#soma rt , rs , imm
+	addu $t2, $t1, $t3 #soma o valor de $t2 com imm e armazena em $t1
 	move $a0, $t4 #$a0 <- instrucao
-	jal get_rs_tipo_i #$v0 <- rs
-	move $a0, $v0 #$a0 <- rs
+	jal get_rt_tipo_i #$v0 <- rt
+	move $a0, $v0 #$a0 <- rt
 	move $a1, $t1 #$a1 <- resultado da operacao
 	
 	jal set_valor_registrador#armazena o valor no endereco do registrador

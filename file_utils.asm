@@ -3,11 +3,22 @@
 	.globl le_arquivo
 	.globl fecha_arquivo
 	.globl get_buffer_word
-
+	.globl abre_arquivo_data
+	.globl le_arquivo_byte_a_byte
+	.globl get_buffer1
+	
 abre_arquivo:
 	#Carrega arquivo
 	li $v0, 13 #abre o arquivo
 	la $a0, arquivo #passa como argumento o nome do arquivo
+	li $a1, 0 #file flag = 0 (read)
+	syscall #faz chamada para ler o arquivo
+	jr $ra
+	
+abre_arquivo_data:
+	#Carrega arquivo
+	li $v0, 13 #abre o arquivo
+	la $a0, arquivo_data #passa como argumento o nome do arquivo
 	li $a1, 0 #file flag = 0 (read)
 	syscall #faz chamada para ler o arquivo
 	jr $ra
@@ -18,6 +29,15 @@ le_arquivo:
 	li $v0, 14 #syscall para ler o arquivo
 	la $a1, buffer #buffer que guarda todo o conteudo do arquivo
 	li $a2, 4 #hardcoded tamanho do buffer
+	syscall
+	jr $ra
+	
+#recebe o file descriptor em $a0
+le_arquivo_byte_a_byte:
+	#le o arquivo
+	li $v0, 14 #syscall para ler o arquivo
+	la $a1, buffer1 #buffer que guarda todo o conteudo do arquivo
+	li $a2, 1 #hardcoded tamanho do buffer
 	syscall
 	jr $ra
 	
@@ -68,7 +88,21 @@ get_buffer_word:
 	addiu $sp, $sp, 12 #retira 12 bytes na pilha
 	jr $ra
 
+get_buffer1:
+	addiu $sp, $sp, -4 
+	sw $t1, 0($sp)
+	
+	la $t1, buffer1
+	lb $v0, 0($t1)
+	
+	lw $t1, 0($sp)
+	addiu $sp, $sp, 4
+	jr $ra
+	
+
 .data
 arquivo: .asciiz "trabalho_01-2024_1.bin"
+arquivo_data: .asciiz "trabalh0_01-2024_1.dat"
 buffer: .space 4
+buffer1: .space 1
 

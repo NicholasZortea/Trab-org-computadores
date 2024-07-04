@@ -1,6 +1,7 @@
 .text
 .globl main
 main: 	
+	jal armazena_data #le byte por byte do arquivo .dat e armazena no segmento simulado de data
 	jal armazena_instrucoes #le instrucao por instrucao e armazena em um segmento de texto simulado
 	jal carrega_endereco_sp_nos_registradores #registradores[29] = valor de SP 
 faca:	
@@ -153,6 +154,41 @@ armazena_fim:
 	lw $t0, 8($sp) #restaura $t0
 	addi $sp, $sp, 12 #
 	jr $ra
+	
+#$t1 <- contador para pegar o endereco correto inicia em 0
+#$s0 <- armazena o file descriptor
+armazena_data:
+	addiu $sp, $sp, -16 #aloca 16 bytes
+	sw $s0, 0($sp) #armazena $s0
+	sw $t0, 4($sp) #armazena $t0
+	sw $t1, 8($sp) #armazena $t1
+	sw $ra, 12($sp) #armazena $ra
+	
+	jal abre_arquivo_data #$v0 <- file descriptor do arquivo data
+	move $a0, $v0 #$a0 <- file descriptor
+	move $s0, $a0 #$s0 <- file descriptor
+	move $t1, $zero
+armazena_loop_data:
+	move $a0, $s0 #move o file descriptor para o argumento
+	jal le_arquivo_byte_a_byte
+	bne $v0, 1, armazena_fim_data #se $v0 for diferente de 1 vai para o armazena fim
+	jal get_buffer1 #$v0 <- pega 1 byte lido
+	la $t0, espaco_data #pega endereco base das instrucoes
+	add $t0, $t0, $t1 #incrementa de acordo com o contador
+	sb $v0, 0($t0) #armazena o byte na posicao certa
+	addi $t1, $t1, 1 #incrementa em 1 o contador
+	j armazena_loop_data #vai para o armazena_loop
+	
+armazena_fim_data:
+	#epilogo
+	jal fecha_arquivo
+	lw $s0, 0($sp) #restaura $s0
+	lw $t0, 4($sp) #restaura $t0
+	lw $t1, 8($sp) #restaura $t1
+	lw $ra, 12($sp) #restaura $ra
+	addi $sp, $sp, 16 #desasloca
+	jr $ra
+		
 #pilha
 # 0($sp) -> $a0
 # 4($sp) -> $ra
@@ -835,7 +871,22 @@ syscall_exec:
 	jal get_valor_registrador #$v0 <- valor presente no registrador simulado $v0
 	beq $v0, 1, sys_print_int #se $v0 == 1 deve fazer a chamada para printar um inteiro
 	beq $v0, 17, sys_exit2 #se $v0 == 17 deve fazer a chamada para finalizar o programa
+	beq $v0, 4, sys_print_string #se $v0 == 4 deve fazer a chamada para printar uma string
+	#beq $v0, 11, sys_print_char #se $v0 == 11 deve fazer a chamada para printar um caracter
 	j fim_switch
+	
+sys_print_string:
+	jal printa_linha_vazia
+	addi $a0, $zero, 4 #$a0 <- 4 que representa o registrador simulado $a0
+	jal get_valor_registrador #$v0 <- valor contido no registrador simulado $a0 == vai ser um endereco
+	move $a0, $v0 #$a0 <- endereco contido no registrador simulado $a0
+	jal get_endereco_data #$v0 <- endereco do segmento de data simulado que contem a string
+	move $a0, $v0 #$a0 <- endereco do segmento de data simulado que contem a string
+	li $v0, 4 #chamada para printar string
+	syscall
+	jal printa_linha_vazia
+	j fim_switch
+	
 sys_exit2:
 	addi $a0, $zero, 4 #$a0 <- 4 que representa o registrador simulado $a0
 	jal get_valor_registrador #$v0 <- valor contido no registrador simulado $a0
@@ -919,6 +970,30 @@ set_valor_registrador:
 	addiu $sp, $sp, 4 #desaloca 4 bytes
 	jr $ra
 
+#$t0 <- endereco solicitado
+#$t2 <- 0x1001 0000
+#$t1 <- endereco inical do espaco_data
+get_endereco_data:
+	#prologo
+	addiu $sp, $sp, -12 #aloca 12 bytes
+	sw $t0, 0($sp) #armazena $t0
+	sw $t2, 4($sp) #armazena $t2
+	sw $t1, 8($sp) #armazena $t1
+	
+	#corpo
+        move $t0, $a0 #0x10018cd por exemplo
+        lui $t2, 0x1001 #$t2 <- endereco inicial do segmento de data 0x1010 0000
+        sub $t2, $t0, $t2 #$t2 <- endereco buscado - endereco de data inicial = posicao no vetor simulado do espaco_data
+        la $t1, espaco_data #$t1 <- espaco_data
+        add $v0, $t1, $t2 #$v0 <- espaco_data[endereco solicitado]
+        
+        #epilogo
+        lw $t0, 0($sp) #restaura $t0
+	lw $t2, 4($sp) #restaura $t2
+	lw $t1, 8($sp) #restaura $t1
+	addiu $sp, $sp, 12 #desaloca 12 bytes
+	jr $ra
+
 get_instrucao_do_IR:
 	#prologo
 	addi $sp, $sp, -8 #aloca 8 bytes
@@ -964,3 +1039,5 @@ IR: .word 0 #instruction register
 instrucoes: .space 2048 #limite de 512 instrucoes
 PC: .word 0x00400000 #Program counter começa apontando para esse endereço
 espaco_pilha: .space 1024 #limite na pilha de 1024 bytes
+espaco_data: .space 1024 #limite de dados no segmento de data simulado de 1024 bytes
+

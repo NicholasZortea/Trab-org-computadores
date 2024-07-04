@@ -224,8 +224,8 @@ identifica_instrucao:
 	beq $t2, 0, tipo_r_exec #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
 	beq $t2, 3, jal_exec #se o opcode for 2 é uma instrução do tipo jal
 	#beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
-	#beq $t2, 5, bne_label #se o opcode for 5 vai para a instrução bne
-	#beq $t2, 8, addi_label #se o opcode for 5 vai para a instrução addi
+	beq $t2, 5, bne_exec #se o opcode for 5 vai para a instrução bne
+	beq $t2, 8, addi_exec #se o opcode for 5 vai para a instrução addi
 	#beq $t2, 28, tipo_r_label #se o opcode for 28 vai para instruções do tipo r
 	#beq $t2, 2, j_label #se o opcode for 2 vai para instrução j
 	#beq $t2, 15, lui_label #se o opcode for 15 vai para instrução lui
@@ -439,6 +439,117 @@ jal_exec: #jal target
 	addiu $sp, $sp, 16 
 	j fim_switch
 
+#$t1 <- rs
+#$t2 <- rt
+#$t3 <- label
+#$t4 <- instrucao atual
+bne_exec:#bne rs, rt, label #desvia para o numero de instrucoes se rs nao for igual a rt
+	#1 pega rs
+	#2 pega rt
+	#3 compara rt e rs
+	#4 se nao for igual desvia para label que incrementa o PC de acordo com a label
+	#prologo
+	addiu $sp, $sp, -16
+	sw $t1, 0($sp) 
+	sw $t2, 4($sp) 
+	sw $t3, 8($sp) 
+	sw $t4, 12($sp) 
+	
+	#carrega instrucao do IR
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	move $t4, $v0 #$t4 <- instrucao atual
+	
+	#rs
+	jal get_rs_tipo_i #$v0 <- rs
+	move $t1, $v0 #$t1 <- valor que representa rs
+	move $a0, $t1 #$a0 <- rs
+	jal get_valor_registrador #$v0 <- valor contido do $rs do segmento simulado de registradores
+	move $t1, $v0 #$t1 <- valor do registrador rs
+	
+	#rt
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal get_rt_tipo_i #$v0 <- rt
+	move $t2, $v0 #$t2 <- $v0
+	move $a0, $t2 #$a0 <- rt
+	jal get_valor_registrador #$v0 <- valor contido do $rt do segmento simulado de registradores
+	move $t2, $v0 #$t2 <- valor do registrador rs
+	
+	#label
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal get_imm_tipo_i #$v0 <- label
+	move $t3, $v0 #$t3 <- label
+	
+	#faz comparacao para alterar PC
+	bne $t1, $t2, altera_PC #se $t1 for diferente de $t2 vai para altera_PC
+	j fim_bne #vai para fim e nao altera o PC 
+altera_PC:	
+	la $t1, PC #$t1 <- endereco de PC
+	lw $t2, 0($t1) #$t2 <- valor de PC
+	sll $t3, $t3, 2 #multiplica o target por 4 e armazena em $t3
+	add $t3, $t3, $t2, #$t3 <- valor de PC + label * 4
+	sw $t3, 0($t1) #PC += label * 4
+fim_bne:
+	#epilogo
+	lw $t1, 0($sp) 
+	lw $t2, 4($sp) 
+	lw $t3, 8($sp) 
+	lw $t4, 12($sp)
+	addiu $sp, $sp, 16 
+	j fim_switch
+	
+addi_exec: #addi rt, rs, imm
+	#prologo
+	addiu $sp, $sp, -16
+	sw $t1, 0($sp) 
+	sw $t2, 4($sp) 
+	sw $t3, 8($sp) 
+	sw $t4, 12($sp) 
+	
+	#carrega instrucao
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $t4, $v0 #$t4 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	
+	#rs
+	jal get_rs_tipo_i #$v0 <- rs
+	move $t1, $v0 #$t1 <- $v0
+	move $a0, $t1 #$a0 <- rs
+	jal get_valor_registrador #$v0 <- valor contido do $rs do segmento simulado de registradores
+	move $t1, $v0 #$t1 <- valor do registrador rs
+	
+	#rt
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal get_rt_tipo_i #$v0 <- rt
+	move $t2, $v0 #$t2 <- $v0
+	move $a0, $t2 #$a0 <- rt
+	jal get_valor_registrador #$v0 <- valor contido do $rt do segmento simulado de registradores
+	move $t2, $v0 #$t2 <- valor do registrador rs
+	
+	#imm
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal get_imm_tipo_i #$v0 <- imm
+	move $a0, $v0 #$a0 <- imm 
+	jal extende_imm #procedimento para extender o numero
+	move $t3, $v0 #$t3 <- $v0
+	
+	#soma rt , rs , imm
+	add $t2, $t1, $t3 #soma o valor de $t1 com imm e armazena em $t2
+	move $a0, $t4 #$a0 <- instrucao
+	jal get_rt_tipo_i #$v0 <- rt
+	move $a0, $v0 #$a0 <- rt
+	move $a1, $t2 #$a1 <- resultado da operacao
+	
+	jal set_valor_registrador#armazena o valor no endereco do registrador
+	
+	#epilogo
+	lw $t1, 0($sp) 
+	lw $t2, 4($sp) 
+	lw $t3, 8($sp) 
+	lw $t4, 12($sp)
+	addiu $sp, $sp, 16 
+	j fim_switch
+	
 fim_switch:
 	lw $ra, 0($sp) #restaura o $ra para voltar a funcao certa
 	lw $a0, 4($sp) #restaura o registrador de argumento

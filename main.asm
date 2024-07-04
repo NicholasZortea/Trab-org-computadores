@@ -1068,5 +1068,5 @@ instrucoes: .space 2048 #limite de 512 instrucoes
 PC: .word 0x00400000 #Program counter começa apontando para esse endereço
 espaco_pilha: .space 1024 #limite na pilha de 1024 bytes
 espaco_data: .space 1024 #limite de dados no segmento de data simulado de 1024 bytes
-erro_nao_implementada_string: .asciiz "Nao existe implementacao para essa instrucao, o programa sera encerrado!\n"
+erro_nao_implementada_string: .asciiz "Nao existe implementacao para essa instrucao, o programa sera encerrado!"
 erro_leitura_string: .asciiz "Erro ao ler arquivo, o programa sera encerrado"

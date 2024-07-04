@@ -3,7 +3,6 @@
 main: 	
 	jal armazena_instrucoes #le instrucao por instrucao e armazena em um segmento de texto simulado
 	jal carrega_endereco_sp_nos_registradores #registradores[29] = valor de SP 
-	j enquanto_houver_instrucoes #pula para a condicao
 faca:	
 	jal printa_PC #printa o endereco de PC em hexadecimal
 	jal busca_instrucao #IR <- instrucao atual
@@ -13,16 +12,8 @@ faca:
 	jal executa 
 	
 	jal incrementa_PC #PC += 4
-	#jal decrementa_instrucoes #nmr_instrucoes -= 1
-enquanto_houver_instrucoes:
-	jal get_numero_instrucoes #$v0 <- numero de instrucoes
-	bgtz $v0, faca #se $v0 > 0 vai para faca
-fim_condicao:
-	jal fecha_arquivo
-	#termina o programa
-	li $v0, 10
-	syscall
-	
+	j faca
+
 printa_instrucao:
 	addiu $sp, $sp, -4 #aloca 4 bytes
 	sw $ra, 0($sp) #armazena $ra
@@ -53,23 +44,11 @@ printa_PC:
 	addiu $sp, $sp 4 #desaloca 4 bytes
 	jr $ra
 
-get_numero_instrucoes:
-	la $t1, nmr_instrucoes #$t1 <- endereco do numero_instrucoes
-	lw $v0, 0($t1) #$v0 <- numero de instrucoes
-	jr $ra
-	
 incrementa_PC:
 	la $t1, PC #$t1 <- endereco de PC
 	lw $t2, 0($t1) #$t2 <- valor de PC
 	add $t2, $t2, 4 #$t2 <- PC + 4
 	sw $t2, 0($t1) #PC <- PC + 4
-	jr $ra
-	
-decrementa_instrucoes:
-	la $t1, nmr_instrucoes #$t1 <- endereco de nmr_instrucoes
-	lw $t2, 0($t1) #$t2 <- numero de instrucoes
-	sub $t2, $t2, 1 #$t2 <- numero de instrucoes -1 
-	sw $t2, 0($t1) #nmr_instrucoes <- numero de instrucoes -1 
 	jr $ra
 	
 #esse procedimento procura no segmento de texto a instrucao que corresponde ao PC e carrega em IR
@@ -163,12 +142,6 @@ armazena_loop:
 	add $t0, $t0, $t1 #incrementa de acordo com o contador
 	sw $v0, 0($t0) #armazena a instrucao na posicao certa
 	addi $t1, $t1, 4 #incrementa em 4 o contador
-	
-	#incrementa nmr de instrucoes
-	la $t0, nmr_instrucoes #carrega endereco da variavel
-	lw $t2, 0($t0) #carrega o nmr de instrucoes em $t2
-	addi $t2, $t2, 1 #incrementa em 1 $t2
-	sw $t2, 0($t0) #salva o novo numero de instrucoes 
 	
 	j armazena_loop #vai para o armazena_loop
 	
@@ -988,7 +961,6 @@ fim:
 registradores: .space 128 #32 registradores * 4 bytes cada
 SP: .word 0x7FFFFFFC #a pilha "cresce" para baixo portanto começa no maior endereço possível
 IR: .word 0 #instruction register
-nmr_instrucoes: .word 0 #quantidade total de instrucoes no programa
 instrucoes: .space 2048 #limite de 512 instrucoes
 PC: .word 0x00400000 #Program counter começa apontando para esse endereço
 espaco_pilha: .space 1024 #limite na pilha de 1024 bytes

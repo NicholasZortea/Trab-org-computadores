@@ -221,7 +221,7 @@ identifica_instrucao:
 	#beq $t1, $t3, syscall_exec #se for syscall vai para syscall
 	beq $t2, 9, addiu_exec #se o opcode for 9 vai para a instrução addiu
 	beq $t2, 43, sw_exec #se o opcode for 43 vai para instrução sw
-	#beq $t2, 0, tipo_r_label #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
+	beq $t2, 0, tipo_r_exec #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
 	#beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
 	#beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
 	#beq $t2, 5, bne_label #se o opcode for 5 vai para a instrução bne
@@ -295,10 +295,12 @@ addiu_exec:
 	sw $t3, 8($sp) 
 	sw $t4, 12($sp) 
 	
-	#rs
+	#carrega instrucao
 	jal get_instrucao_do_IR #$v0 <- instrucao atual
 	move $t4, $v0 #$t4 <- instrucao atual
 	move $a0, $v0 #$a0 <- instrucao atual
+	
+	#rs
 	jal get_rs_tipo_i #$v0 <- rs
 	move $t1, $v0 #$t1 <- $v0
 	move $a0, $t1 #$a0 <- rs
@@ -328,6 +330,68 @@ addiu_exec:
 	move $a1, $t2 #$a1 <- resultado da operacao
 	
 	jal set_valor_registrador#armazena o valor no endereco do registrador
+	
+	#epilogo
+	lw $t1, 0($sp) 
+	lw $t2, 4($sp) 
+	lw $t3, 8($sp) 
+	lw $t4, 12($sp)
+	addiu $sp, $sp, 16 
+	j fim_switch
+	
+tipo_r_exec:
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	jal get_funct_tipo_r #pega qual o campo funct e coloca em $v0
+	lw $a0, 4($sp) #restaura instrucao no $a0
+	beq $v0, 32, add_exec #se o campo funct for igual a 32 vai para add_label
+	#beq $v0, 33, addu_label #se o campo funct for igual a 33 vai para addu_label
+	#beq $v0, 2, mul_label #se o campo funct for igual a 2 vai para mul_label
+	#beq $v0, 8, jr_label #se o campo funct for igual a 8 vai para jr_label
+	j fim_switch
+	
+#$t1 <-	rs
+#$t2 <-	rt
+#$t3 <-	rd
+#$t4 <- instrucao
+add_exec:#add rd, rs, rt #estrutura
+	#prologo
+	addiu $sp, $sp, -16
+	sw $t1, 0($sp) 
+	sw $t2, 4($sp) 
+	sw $t3, 8($sp) 
+	sw $t4, 12($sp) 
+	
+	#carrega instrucao
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $t4, $v0 #$t4 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	
+	#rs
+	jal get_rs_tipo_r #$v0 <- rs
+	move $t1, $v0 #$t1 <- $v0
+	move $a0, $t1 #$a0 <- rs
+	jal get_valor_registrador #$v0 <- valor contido do $rs do segmento simulado de registradores
+	move $t1, $v0 #$t1 <- valor do registrador rs
+	
+	#rt
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal get_rt_tipo_r #$v0 <- rt
+	move $t2, $v0 #$t2 <- $v0
+	move $a0, $t2 #$a0 <- rs
+	jal get_valor_registrador #$v0 <- valor contido do $rt do segmento simulado de registradores
+	move $t2, $v0 #$t2 <- valor do registrador rt
+	
+	#rd
+	move $a0, $t4 #$a0 <- instrucao atual
+	jal get_rd_tipo_r #$v0 <- rd
+	move $t3, $v0 #$t3 <- registrador 
+	
+	#faz a soma e armazena em $t4
+	add $t4, $t1, $t2 #$t4 <- $t2 + $t1 (rs + rt)
+	move $a1, $t4 #$a1 <- resultado da soma
+	move $a0, $t3 #$a0 <- numero do registrador de destino da soma
+	jal set_valor_registrador
 	
 	#epilogo
 	lw $t1, 0($sp) 

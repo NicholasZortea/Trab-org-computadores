@@ -5,6 +5,10 @@
 .globl get_rs_tipo_i
 .globl get_imm_tipo_i
 .globl get_rt_tipo_i
+.globl get_funct_tipo_r
+.globl get_rt_tipo_r
+.globl get_rs_tipo_r
+.globl get_rd_tipo_r
 #####################################
 #registradores			    #
 #em $s1 <- instrução lida do buffer #

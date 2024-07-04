@@ -872,7 +872,17 @@ syscall_exec:
 	beq $v0, 1, sys_print_int #se $v0 == 1 deve fazer a chamada para printar um inteiro
 	beq $v0, 17, sys_exit2 #se $v0 == 17 deve fazer a chamada para finalizar o programa
 	beq $v0, 4, sys_print_string #se $v0 == 4 deve fazer a chamada para printar uma string
-	#beq $v0, 11, sys_print_char #se $v0 == 11 deve fazer a chamada para printar um caracter
+	beq $v0, 11, sys_print_char #se $v0 == 11 deve fazer a chamada para printar um caracter
+	j fim_switch
+	
+sys_print_char:
+	jal printa_linha_vazia
+	addi $a0, $zero, 4 #$a0 <- 4 que representa o registrador simulado $a0
+	jal get_valor_registrador #$v0 <- valor contido no registrador simulado $a0 == vai ser um caracter
+	move $a0, $v0 #$a0 <- caracter a ser printado
+	li $v0, 11 #chamada para printar char
+	syscall
+	jal printa_linha_vazia
 	j fim_switch
 	
 sys_print_string:

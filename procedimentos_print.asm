@@ -8,9 +8,21 @@
 .globl printa_caracter
 .globl printa_virgula_espaco
 printa_linha_vazia:
+	#prologo
+	addiu $sp, $sp, -12
+	sw $a0, 0($sp)
+	sw $v0, 4($sp)
+	sw $ra, 8($sp)
+	
 	li $a0, '\n' #carrega caracter especial de quebra de linha
 	li $v0, 11 #carrega serviço para printar caracter
 	syscall #faz chamada ao sistema
+	
+	#epilogo
+	lw $a0, 0($sp)
+	lw $v0, 4($sp)
+	lw $ra, 8($sp)
+	addiu $sp, $sp, 12
 	jr $ra #retorna para metodo chamador
 
 printa_tab:

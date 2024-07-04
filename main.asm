@@ -223,11 +223,11 @@ identifica_instrucao:
 	beq $t2, 43, sw_exec #se o opcode for 43 vai para instrução sw
 	beq $t2, 0, tipo_r_exec #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
 	beq $t2, 3, jal_exec #se o opcode for 2 é uma instrução do tipo jal
-	#beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
+	#beq $t2, 35, lw_exec #se o opcode for 43 vai para a instrução lw
 	beq $t2, 5, bne_exec #se o opcode for 5 vai para a instrução bne
 	beq $t2, 8, addi_exec #se o opcode for 5 vai para a instrução addi
 	#beq $t2, 28, tipo_r_label #se o opcode for 28 vai para instruções do tipo r
-	#beq $t2, 2, j_label #se o opcode for 2 vai para instrução j
+	beq $t2, 2, j_exec #se o opcode for 2 vai para instrução j
 	#beq $t2, 15, lui_label #se o opcode for 15 vai para instrução lui
 	#beq $t2, 13, ori_label #se o opcode for 13 vai para instrução ori
 	j fim_switch
@@ -550,6 +550,82 @@ addi_exec: #addi rt, rs, imm
 	addiu $sp, $sp, 16 
 	j fim_switch
 	
+#registradores
+#$t1 <- rs
+#$t2 <- rt
+#$t3 <- endereco
+#$t4 <- instrucao atual	
+lw_exec: #lw rt, endereco, endereco = offset + valor do rs
+	#prologo
+	addiu $sp, $sp, -16
+	sw $t1, 0($sp) 
+	sw $t2, 4($sp) 
+	sw $t3, 8($sp) 
+	sw $t4, 12($sp)
+	
+	#carrega instrucao
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $t4, $v0 #$t4 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	
+	#rs
+	jal get_rs_tipo_i #$v0 <- rs
+	move $a0, $v0 #$a0 <- rs
+	jal get_valor_registrador #$v0 <- valor dentro do registrador simulado rs
+	move $t1, $v0 #$t1 <- conteudo de rs
+	
+	#imm
+	move $a0, $t4 #$a0 <- instrucao
+	jal get_imm_tipo_i #$v0 <- imm
+	move $a0, $v0 #$a0 <- imm
+	jal extende_imm #$v0 <- imm extendido
+	move $t3, $v0 #$t3 <- imm extendido
+	add $t3, $t3, $t1 #$t3 <- endereco dentro de rs + offset = endereco
+	
+	#rt
+	move $a0, $t4 #$a0 <- instrucao
+	jal get_rt_tipo_i #$v0 <- rt
+	move $a0, $v0 #$a0 <- rt
+	
+	#carrega valor em $t5
+	lw $t5, 0($t3) #$t5 <- valor do lw do endereco simulado
+	move $a1, $t5 #$a1 <- valor a ser colocado no registrador rt
+	jal set_valor_registrador 
+	
+	#epilogo
+	lw $t1, 0($sp) 
+	lw $t2, 4($sp) 
+	lw $t3, 8($sp) 
+	lw $t4, 12($sp)
+	addiu $sp, $sp, 16 
+	j fim_switch	
+	
+#$t1 <- endereco PC
+#$t4 <- endereco para pular
+j_exec:
+	#prologo
+	addiu $sp, $sp, -8
+	sw $t1, 0($sp) 
+	sw $t4, 4($sp) 
+	
+	la $t1, PC #$t1 <- endereco base de PC
+	
+	#label
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	jal get_target_tipo_j #$v0 <- target da instrucao jal 
+	move $t4, $v0 #$t4 <- target
+	
+	#salva target no PC
+	sub $t4, $t4, 4 #$t4 <- target - 4. Decrementa pois apos sair do switch o PC sera incrementado em 4 fazendo com que o endereco fique correto para a proxima interacao
+	sw $t4, 0($t1) #PC <- target - 4
+	
+	#epilogo
+	lw $t1, 0($sp) 
+	lw $t4, 4($sp) 
+	addiu $sp, $sp, 8 
+	j fim_switch
+
 fim_switch:
 	lw $ra, 0($sp) #restaura o $ra para voltar a funcao certa
 	lw $a0, 4($sp) #restaura o registrador de argumento

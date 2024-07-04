@@ -220,7 +220,7 @@ identifica_instrucao:
 	
 	#beq $t1, $t3, syscall_exec #se for syscall vai para syscall
 	beq $t2, 9, addiu_exec #se o opcode for 9 vai para a instrução addiu
-	#beq $t2, 43, sw_label #se o opcode for 43 vai para instrução sw
+	beq $t2, 43, sw_exec #se o opcode for 43 vai para instrução sw
 	#beq $t2, 0, tipo_r_label #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
 	#beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
 	#beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
@@ -236,7 +236,65 @@ identifica_instrucao:
 #$t2 <-	rt
 #$t3 <-	imm
 #$t4 <- instrucao
+#$t5 <- offset = endereco de rs + imm	
+sw_exec:#sw rt, imm(rs)
+	#prologo
+	addiu $sp, $sp, -20
+	sw $t1, 0($sp) 
+	sw $t2, 4($sp) 
+	sw $t3, 8($sp) 
+	sw $t4, 12($sp)
+	sw $t5, 16($sp) 
+	
+	#carrega instrucao
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $t4, $v0 #$t4 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	
+	#rs
+	jal get_rs_tipo_i #$v0 <- rs
+	move $a0, $v0 #$a0 <- rs
+	jal get_valor_registrador #$v0 <- valor dentro do registrador simulado rs
+	move $t5, $v0 #$t5 <- conteudo de rs
+	
+	#imm
+	move $a0, $t4 #$a0 <- instrucao
+	jal get_imm_tipo_i #$v0 <- imm
+	move $a0, $v0 #$a0 <- imm
+	jal extende_imm #$v0 <- imm extendido
+	addu $t5, $t5, $v0 #$t5 <- imm + conteudo de rs = offset
+	
+	#rt
+	move $a0, $t4 #$a0 <- instrucao
+	jal get_rt_tipo_i #$v0 <- rt
+	move $a0, $v0 #$a0 <- rt
+	jal get_valor_registrador #$v0 <- valor dentro do registrador simulado rt
+	move $t2, $v0 #$t2 <- conteudo de rt
+	
+	sw $t2, 0($t5) #salva o conteudo de rt em imm(rs)
+	
+	#epilogo
+	lw $t1, 0($sp) 
+	lw $t2, 4($sp) 
+	lw $t3, 8($sp) 
+	lw $t4, 12($sp)
+	lw $t5, 16($sp)
+	addiu $sp, $sp, 20 
+	j fim_switch
+	 
+#$t1 <-	rs
+#$t2 <-	rt
+#$t3 <-	imm
+#$t4 <- instrucao
 addiu_exec:
+	#addiu rt, rs, imm
+	#prologo
+	addiu $sp, $sp, -16
+	sw $t1, 0($sp) 
+	sw $t2, 4($sp) 
+	sw $t3, 8($sp) 
+	sw $t4, 12($sp) 
+	
 	#rs
 	jal get_instrucao_do_IR #$v0 <- instrucao atual
 	move $t4, $v0 #$t4 <- instrucao atual
@@ -253,7 +311,7 @@ addiu_exec:
 	move $t2, $v0 #$t2 <- $v0
 	move $a0, $t2 #$a0 <- rt
 	jal get_valor_registrador #$v0 <- valor contido do $rt do segmento simulado de registradores
-	move $t2, $v0 #$t1 <- valor do registrador rs
+	move $t2, $v0 #$t2 <- valor do registrador rs
 	
 	#imm
 	move $a0, $t4 #$a0 <- instrucao atual
@@ -263,13 +321,20 @@ addiu_exec:
 	move $t3, $v0 #$t3 <- $v0
 	
 	#soma rt , rs , imm
-	addu $t2, $t1, $t3 #soma o valor de $t2 com imm e armazena em $t1
+	addu $t2, $t1, $t3 #soma o valor de $t1 com imm e armazena em $t2
 	move $a0, $t4 #$a0 <- instrucao
 	jal get_rt_tipo_i #$v0 <- rt
 	move $a0, $v0 #$a0 <- rt
-	move $a1, $t1 #$a1 <- resultado da operacao
+	move $a1, $t2 #$a1 <- resultado da operacao
 	
 	jal set_valor_registrador#armazena o valor no endereco do registrador
+	
+	#epilogo
+	lw $t1, 0($sp) 
+	lw $t2, 4($sp) 
+	lw $t3, 8($sp) 
+	lw $t4, 12($sp)
+	addiu $sp, $sp, 16 
 	j fim_switch
 	
 fim_switch:

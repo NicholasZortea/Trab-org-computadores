@@ -357,12 +357,19 @@ get_rt_tipo_i:
 	jr $ra
 
 get_imm_tipo_i:
+	addiu $sp, $sp, -8 #aloca 8 bytes 
+	sw $t1, 0($sp) #armazena $t1
+	sw $ra, 4($sp) #armazena $ra
+	
 	#corpo do procedimento
 	sll $t1, $a0, 16 #shift left de 16 bits para pegar imm
 	srl $t1, $t1, 16 #shift right para isolar os 16 bits do imm
 	move $v0, $t1 #seta retorno como valor imediato de 16 bits
 	
 	#epilogo
+	lw $t1, 0($sp) #restaura $t1
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes 
 	jr $ra
 	
 get_rs_tipo_r:
@@ -380,43 +387,76 @@ get_rs_tipo_r:
 	jr $ra
 	
 get_rt_tipo_r:
+	addiu $sp, $sp, -8 #aloca 8 bytes 
+	sw $t1, 0($sp) #armazena $t1
+	sw $ra, 4($sp) #armazena $ra
+	
 	#corpo do procedimento
 	sll $t1, $a0, 11 #shift left de 11 bits para pegar o rt
 	srl $v0, $t1, 27 #shift right para isolar os 5 bits do rt 
 	
 	#epilogo
+	lw $t1, 0($sp) #restaura $t1
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes 
 	jr $ra
 	
 get_rd_tipo_r:
+	addiu $sp, $sp, -8 #aloca 8 bytes 
+	sw $t1, 0($sp) #armazena $t1
+	sw $ra, 4($sp) #armazena $ra
+	
 	#corpo do procedimento
 	sll $t1, $a0, 16 #shift left de 16 bits para pegar o rd
 	srl $v0, $t1, 27 #shift right para isolar os 5 bits do rd 
 	
 	#epilogo
+	lw $t1, 0($sp) #restaura $t1
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes 
 	jr $ra
 	
 get_shamt_tipo_r:
+	addiu $sp, $sp, -8 #aloca 8 bytes 
+	sw $t1, 0($sp) #armazena $t1
+	sw $ra, 4($sp) #armazena $ra
+	
 	#corpo do procedimento
 	sll $t1, $a0, 21 #shift left de 21 bits para pegar o campo shamt
 	srl $v0, $t1, 27 #shift right para isolar o campo shamt
 	
 	#epilogo
+	lw $t1, 0($sp) #restaura $t1
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes 
 	jr $ra
 
 get_funct_tipo_r:
+	addiu $sp, $sp, -8 #aloca 8 bytes 
+	sw $t1, 0($sp) #armazena $t1
+	sw $ra, 4($sp) #armazena $ra
+	
 	#corpo do procedimento
 	sll $t1, $a0, 26 #shift left de 26 bits para pegar o campo funct
 	srl $v0, $t1, 26 #shift right para isolar o campo funct
 	
 	#epilogo
+	lw $t1, 0($sp) #restaura $t1
+	lw $ra, 4($sp) #restaura $ra
+	addiu $sp, $sp, 8 #desaloca 8 bytes 
 	jr $ra
 
 get_target_tipo_j:
+	addiu $sp, $sp, -4 #aloca 4 bytes 
+	sw $ra, 0($sp) #armazena $ra
+	
 	#corpo do procedimento
 	sll $v0, $a0, 6 #shift left de 6 bits para eliminar o opcode
 	srl $v0, $v0 4 #shift right de 4 bits para colocar 4 bits no msb e 2 no lsb
 	
 	#epilogo 
+	lw $ra, 0($sp) #restaura $ra
+	addiu $sp, $sp, 4 #desaloca 4 bytes 
 	jr $ra
 	
 #printa instruções no estilo rt, imm(rs)

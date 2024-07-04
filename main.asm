@@ -137,6 +137,7 @@ armazena_instrucoes:
 armazena_loop:
 	move $a0, $s0 #move o file descriptor para o argumento
 	jal le_arquivo
+	blt $v0, 0, erro_leitura #se $v0 for menor que 0 vai para erro de leitura
 	bne $v0, 4, armazena_fim #se $v0 for diferente de 4 vai para o armazena fim
 	jal get_buffer_word #pega a instrucao que esta no buffer
 	la $t0, instrucoes #pega endereco base das instrucoes
@@ -171,6 +172,8 @@ armazena_data:
 armazena_loop_data:
 	move $a0, $s0 #move o file descriptor para o argumento
 	jal le_arquivo_byte_a_byte
+	li $a0, 0xffffffff
+	beq $v0, $a0, erro_leitura #se $v0 for menor que 0 vai para erro de leitura
 	bne $v0, 1, armazena_fim_data #se $v0 for diferente de 1 vai para o armazena fim
 	jal get_buffer1 #$v0 <- pega 1 byte lido
 	la $t0, espaco_data #pega endereco base das instrucoes
@@ -213,7 +216,7 @@ executa:
 	lw $a0, 0($sp) #restaura $a0
 	lw $ra, 4($sp) #restaura $ra
 	lw $s0, 8($sp) #restaura $s0
-	addi $sp, $sp, 12 #
+	addi $sp, $sp, 12 #desaloca 12 bytes
 	jr $ra
 	
 identifica_instrucao:
@@ -226,7 +229,7 @@ identifica_instrucao:
 	move $t1, $v0 #seta $t1 para a instrução
 	move $t2, $a1 #seta $t2 para o opcode da instrucao
 	
-	addi $t3, $zero, 0x000c
+	addi $t3, $zero, 0x000c #$t3 <- 0x0000 000c
 	
 	beq $t1, $t3, syscall_exec #se for syscall vai para syscall
 	beq $t2, 9, addiu_exec #se o opcode for 9 vai para a instrução addiu
@@ -240,7 +243,7 @@ identifica_instrucao:
 	beq $t2, 2, j_exec #se o opcode for 2 vai para instrução j
 	beq $t2, 15, lui_exec #se o opcode for 15 vai para instrução lui
 	beq $t2, 13, ori_exec #se o opcode for 13 vai para instrução ori
-	j fim_switch
+	j erro_nao_impl
 
 #$t1 <-	rs
 #$t2 <-	rt
@@ -451,7 +454,7 @@ tipo_r_exec:
 	beq $v0, 33, addu_exec #se o campo funct for igual a 33 vai para addu_exec
 	beq $v0, 2, mul_exec #se o campo funct for igual a 2 vai para mul_exec
 	beq $v0, 8, jr_exec #se o campo funct for igual a 8 vai para jr_exec
-	j fim_switch
+	j erro_nao_impl
 	
 #$t1 <-	rs
 #$t2 <-	rt
@@ -1003,6 +1006,21 @@ get_endereco_data:
 	lw $t1, 8($sp) #restaura $t1
 	addiu $sp, $sp, 12 #desaloca 12 bytes
 	jr $ra
+	
+erro_nao_impl:
+	la $a0, erro_nao_implementada_string #$a0 <- string que representa erro de instrucao nao implementada
+	li $v0, 4 #$v0 <- 4 (servico para printar string)
+	syscall
+	li $v0, 10 #$v0 <- 10 (servico para finalizar o programa)
+	syscall
+	
+erro_leitura:
+	la $a0, erro_leitura_string #$a0 <- string que representa erro de instrucao nao implementada
+	li $v0, 4 #$v0 <- 4 (servico para printar string)
+	syscall
+	li $v0, 10 #$v0 <- 10 (servico para finalizar o programa)
+	syscall
+	
 
 get_instrucao_do_IR:
 	#prologo
@@ -1050,4 +1068,5 @@ instrucoes: .space 2048 #limite de 512 instrucoes
 PC: .word 0x00400000 #Program counter começa apontando para esse endereço
 espaco_pilha: .space 1024 #limite na pilha de 1024 bytes
 espaco_data: .space 1024 #limite de dados no segmento de data simulado de 1024 bytes
-
+erro_nao_implementada_string: .asciiz "Nao existe implementacao para essa instrucao, o programa sera encerrado!\n"
+erro_leitura_string: .asciiz "Erro ao ler arquivo, o programa sera encerrado"

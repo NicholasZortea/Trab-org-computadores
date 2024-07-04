@@ -13,6 +13,8 @@ abre_arquivo:
 	la $a0, arquivo #passa como argumento o nome do arquivo
 	li $a1, 0 #file flag = 0 (read)
 	syscall #faz chamada para ler o arquivo
+	li $a0, 0xffffffff
+	beq $v0, $a0, erro_leitura #se $v0 for menor que 0 vai para erro de leitura
 	jr $ra
 	
 abre_arquivo_data:
@@ -21,7 +23,16 @@ abre_arquivo_data:
 	la $a0, arquivo_data #passa como argumento o nome do arquivo
 	li $a1, 0 #file flag = 0 (read)
 	syscall #faz chamada para ler o arquivo
+	li $a0, 0xffffffff
+	beq $v0, $a0, erro_leitura #se $v0 for menor que 0 vai para erro de leitura
 	jr $ra
+
+erro_leitura:
+	la $a0, erro_leitura_string #$a0 <- string que representa erro de instrucao nao implementada
+	li $v0, 4 #$v0 <- 4 (servico para printar string)
+	syscall
+	li $v0, 10 #$v0 <- 10 (servico para finalizar o programa)
+	syscall
 
 #recebe o file descriptor em $a0
 le_arquivo:
@@ -105,4 +116,5 @@ arquivo: .asciiz "trabalho_01-2024_1.bin"
 arquivo_data: .asciiz "trabalh0_01-2024_1.dat"
 buffer: .space 4
 buffer1: .space 1
+erro_leitura_string: .asciiz "Erro ao ler arquivo, o programa sera encerrado"
 

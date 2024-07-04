@@ -9,6 +9,7 @@
 .globl get_rt_tipo_r
 .globl get_rs_tipo_r
 .globl get_rd_tipo_r
+.globl get_target_tipo_j
 #####################################
 #registradores			    #
 #em $s1 <- instrução lida do buffer #

@@ -222,7 +222,7 @@ identifica_instrucao:
 	beq $t2, 9, addiu_exec #se o opcode for 9 vai para a instrução addiu
 	beq $t2, 43, sw_exec #se o opcode for 43 vai para instrução sw
 	beq $t2, 0, tipo_r_exec #se o opcode for 0 é uma instrução do tipo r e precisa verificar o campo funct
-	#beq $t2, 3, jal_label #se o opcode for 2 é uma instrução do tipo jal
+	beq $t2, 3, jal_exec #se o opcode for 2 é uma instrução do tipo jal
 	#beq $t2, 35, lw_label #se o opcode for 43 vai para a instrução lw
 	#beq $t2, 5, bne_label #se o opcode for 5 vai para a instrução bne
 	#beq $t2, 8, addi_label #se o opcode for 5 vai para a instrução addi
@@ -401,6 +401,44 @@ add_exec:#add rd, rs, rt #estrutura
 	addiu $sp, $sp, 16 
 	j fim_switch
 	
+#$t1 <- endereco PC
+#$t2 <- registrador ficticio ra
+#$t3 <- valor de PC
+#$t4 <- target 
+jal_exec: #jal target
+	#prologo
+	addiu $sp, $sp, -16
+	sw $t1, 0($sp) 
+	sw $t2, 4($sp) 
+	sw $t3, 8($sp) 
+	sw $t4, 12($sp) 
+	
+	la $t1, PC #$t1 <- endereco base de PC
+	lw $t3, 0($t1) #$t3 <- valor da variavel global PC
+	addiu $t2, $zero, 31 #$t2 <- 31 que corresponde ao registrador $ra
+	addi $t3, $t3, 4 #incrementa o valor de PC em 4
+	
+	move $a1, $t3 #$a1 <- PC + 4
+	move $a0, $t2 #$a0 <- 31
+	jal set_valor_registrador #registrador ficticio 31 ($ra) = PC + 4
+	
+	jal get_instrucao_do_IR #$v0 <- instrucao atual
+	move $a0, $v0 #$a0 <- instrucao atual
+	jal get_target_tipo_j #$v0 <- target da instrucao jal 
+	move $t4, $v0 #$t4 <- target
+	
+	#salva target no PC
+	sub $t4, $t4, 4 #$t4 <- target - 4. Decrementa pois apos sair do switch o PC sera incrementado em 4 fazendo com que o endereco fique correto para a proxima interacao
+	sw $t4, 0($t1) #PC <- target - 4
+	
+	#epilogo
+	lw $t1, 0($sp) 
+	lw $t2, 4($sp) 
+	lw $t3, 8($sp) 
+	lw $t4, 12($sp)
+	addiu $sp, $sp, 16 
+	j fim_switch
+
 fim_switch:
 	lw $ra, 0($sp) #restaura o $ra para voltar a funcao certa
 	lw $a0, 4($sp) #restaura o registrador de argumento

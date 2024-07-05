@@ -87,7 +87,7 @@ identifica_instrucao:
 	beq $t2, 2, j_label #se o opcode for 2 vai para instrução j
 	beq $t2, 15, lui_label #se o opcode for 15 vai para instrução lui
 	beq $t2, 13, ori_label #se o opcode for 13 vai para instrução ori
-	j fim_switch
+	jal erro_nao_impl #se nao entrou em nenhuma mostra erro e finaliza o programa
 	
 ori_label:
 	la $a0, ori_str #carrega string em $a0
@@ -210,7 +210,7 @@ tipo_r_label:
 	beq $v0, 33, addu_label #se o campo funct for igual a 33 vai para addu_label
 	beq $v0, 2, mul_label #se o campo funct for igual a 2 vai para mul_label
 	beq $v0, 8, jr_label #se o campo funct for igual a 8 vai para jr_label
-	j fim_switch
+	jal erro_nao_impl #se nao entrou em nenhuma mostra erro e finaliza o programa
 	
 jr_label:
 	la $a0, jr_str #carrega string

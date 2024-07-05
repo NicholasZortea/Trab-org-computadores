@@ -113,7 +113,7 @@ get_buffer1:
 
 .data
 arquivo: .asciiz "trabalho_01-2024_1.bin"
-arquivo_data: .asciiz "trabalh0_01-2024_1.dat"
+arquivo_data: .asciiz "trabalho_01-2024_1.dat"
 buffer: .space 4
 buffer1: .space 1
 erro_leitura_string: .asciiz "Erro ao ler arquivo, o programa sera encerrado"

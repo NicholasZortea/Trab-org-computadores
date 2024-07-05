@@ -1,5 +1,6 @@
 .text
 .globl main
+.globl erro_nao_impl
 main: 	
 	jal armazena_data #le byte por byte do arquivo .dat e armazena no segmento simulado de data
 	jal armazena_instrucoes #le instrucao por instrucao e armazena em um segmento de texto simulado

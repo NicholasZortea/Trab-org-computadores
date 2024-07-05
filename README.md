@@ -1,0 +1,1 @@
+Para executar o projeto, abra o MARS a partir desta pasta, e nas configurações habilite a opção de compilar todos os arquivos no diretório, após isso abra o arquivo main.asm e execute
